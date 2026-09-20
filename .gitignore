@@ -1,0 +1,6 @@
+.vscode/
+
+# java build output
+target/
+bin/
+*.class
