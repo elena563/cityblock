@@ -49,20 +49,20 @@ public class Main {
                 switch (method) {
                     // methods on collections
                     case "create":
-                        
+                        result = Database.getInstance().createCollection(rest);
                     case "drop":
-                      
+                        result = Database.getInstance().dropCollection(rest);
                     // methods on documents
                     case "read":
                         result = Database.getInstance().readDocument(rest);
                     case "insert":
-                        
+                        result = Database.getInstance().insertDocument(rest);
                     case "write":
                        
                     case "delete":
-                        
+                        result = Database.getInstance().deleteDocument(rest);
                     default:
-                        result = "ERROR: method not supported " + method;
+                        result = "ERROR INVALID METHOD " + method;
                       
                     out.println(result);
                     break;
