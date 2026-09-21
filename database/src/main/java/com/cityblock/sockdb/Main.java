@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.cityblock.sockdb.Database;
+
 public class Main {
 
     public static final int PORT = 8080;
@@ -42,30 +44,28 @@ public class Main {
                 String method = parts[0];
                 String rest = parts.length > 1 ? parts[1] : "";
 
+                String result = "";
+
                 switch (method) {
                     // methods on collections
                     case "create":
-                        out.println("Received CREATE request with data: " + rest);
-                        break;
+                        
                     case "drop":
-                        out.println("Received DROP request with data: " + rest);
-                        break;
+                      
                     // methods on documents
                     case "read":
-                        out.println("Received GET request with data: " + rest);
-                        break;
+                        result = Database.getInstance().readDocument(rest);
                     case "insert":
-                        out.println("Received POST request with data: " + rest);
-                        break;
+                        
                     case "write":
-                        out.println("Received PUT request with data: " + rest);
-                        break;
+                       
                     case "delete":
-                        out.println("Received DELETE request with data: " + rest);
-                        break;
+                        
                     default:
-                        out.println("ERROR: method not supported " + method);
-                        break;
+                        result = "ERROR: method not supported " + method;
+                      
+                    out.println(result);
+                    break;
                 }
             }
         } catch (IOException e) {

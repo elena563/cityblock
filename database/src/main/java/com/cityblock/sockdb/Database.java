@@ -28,44 +28,25 @@ public class Database {
         return INSTANCE;
     }
 
-    // path potrbbe essere players/uuid-354
     public String readDocument(String args){
         String[] argsList = args.split(" ");
         String[] path;
         path = argsList[0].split("/");
 
-        boolean filter;
-        String attr = null;
-        String targetVal = null;
-
-        if (argsList.length == 1){
-            filter = false;
-        } else{
-            filter = true;
-
-            String[] condition = argsList[2].split("=");
-            attr = condition[0];
-            targetVal = condition[1];
-        }
-
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
+
+            if (argsList.length > 1){
+                String[] condition = argsList[2].split("=");
+                collection = filterCollection(collection, condition);
+            }
+
             String result = "";
 
             if (path.length == 1){
-                
                 ArrayList<String> entries = new ArrayList<>();
                 for (Map.Entry<String, String> entry : collection.entrySet()) {
-                    if (filter == true){
-                        JsonObject json = Json.createReader(new StringReader(entry.getValue())).readObject();
-                        if (json.containsKey(attr)){
-                            if (json.getString(attr).equalsIgnoreCase(targetVal)){
-                                entries.add(entry.getValue());
-                            }
-                        } 
-                    } else {
                         entries.add(entry.getValue());
-                    }
                 }
                 result = "[" + String.join(",", entries) + "]";
                 return "OK {" + result + "}";
@@ -81,8 +62,26 @@ public class Database {
             return COL_NOT_FOUND;
         }
     }
-    // TODO: tidy up this mess and add helper method
 
+    public ConcurrentHashMap<String, String> filterCollection(ConcurrentHashMap<String, String> collection, String[] condition){
+        String attr = condition[0];
+        String targetVal = condition[1];
+
+        ConcurrentHashMap<String, String> filtered = new ConcurrentHashMap<>();
+
+        for (Map.Entry<String, String> entry : collection.entrySet()) {
+                JsonObject json = Json.createReader(new StringReader(entry.getValue())).readObject();
+                if (json.containsKey(attr)){
+                    if (json.getString(attr).equalsIgnoreCase(targetVal)){
+                        filtered.put(entry.getKey(), entry.getValue());
+                    }
+                } 
+            
+        }
+        return filtered;
+    }
+
+    // path potrbbe essere players/uuid-354
     public String writeDocument(){return "OK";}
 
     public String insertDocument(){return "OK";}
