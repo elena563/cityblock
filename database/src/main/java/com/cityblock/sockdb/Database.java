@@ -7,7 +7,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.Json;
+import jakarta.json.JsonException;
 import jakarta.json.JsonReader;
 
 public class Database {
@@ -17,6 +19,7 @@ public class Database {
     private String COL_NOT_FOUND = "ERROR COLLECTION_NOT_FOUND";
     private String EXISTS = "ERROR ALREADY_EXISTS";
     private String MISSING_ARG = "ERROR MISSING_ARGUMENT";
+    private String INVALID_JSON = "ERROR INVALID_JSON";
 
     // collection name/uuid document/json
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data;
@@ -79,7 +82,7 @@ public class Database {
             }
         }
 
-        if (condition == null){
+        if (condition == null || condition.length == 1){
             return collection;
         }
 
@@ -94,22 +97,10 @@ public class Database {
                     if (json.containsKey(attr)){
                         switch (operator) {
                             case "<":
-                                if (Double.parseDouble(json.getString(attr)) < Double.parseDouble(targetVal)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
                             case ">":
-                                if (Double.parseDouble(json.getString(attr)) > Double.parseDouble(targetVal)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
                             case "<=":
-                                if (Double.parseDouble(json.getString(attr)) <= Double.parseDouble(targetVal)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
                             case ">=":
-                                if (Double.parseDouble(json.getString(attr)) >= Double.parseDouble(targetVal)){
+                                if (satisfies(json.getString(attr), targetVal, operator)){
                                     filtered.put(entry.getKey(), entry.getValue());
                                 }
                                 break;
@@ -132,8 +123,66 @@ public class Database {
         return filtered;
     }
 
-    // path potrbbe essere players/uuid-354
-    public String writeDocument(){return "OK";}
+    private boolean satisfies(String value, String target, String op){
+        try {
+            double a = Double.parseDouble(value);
+            double b = Double.parseDouble(target);
+            switch (op) {
+                case "<": return a < b;
+                case ">": return a > b;
+                case "<=": return a <= b;
+                case ">=": return a >= b;
+                default: return false;
+            }
+        } catch (NumberFormatException e) {
+            int cmp = value.compareTo(target);
+            switch (op) {
+                case "<": return cmp < 0;
+                case ">": return cmp > 0;
+                case "<=": return cmp <= 0;
+                case ">=": return cmp >= 0;
+                default: return false;
+            }
+        }
+    }
+
+    public String writeDocument(String args){
+        String[] argsList = args.split(" ", 2);
+        String[] path = argsList[0].split("/");
+
+        if (argsList.length == 1 || path.length == 1){
+            return MISSING_ARG;
+        }
+        if (data.containsKey(path[0])){
+            var collection = data.get(path[0]);
+
+            if (!collection.containsKey(path[1])){
+                return NOT_FOUND;
+            }
+
+            try (JsonReader docReader = Json.createReader(new StringReader(collection.get(path[1])))) {
+                JsonObject jsonDoc = docReader.readObject();
+                JsonObjectBuilder builder = Json.createObjectBuilder(jsonDoc);
+
+                try (JsonReader inputReader = Json.createReader(new StringReader(argsList[1]))) {
+                    JsonObject jsonInput = inputReader.readObject();
+                    for (var input : jsonInput.entrySet()) {
+                        String attr = input.getKey();
+                        var newVal = input.getValue();
+                        builder.add(attr, newVal);
+                    }
+                }
+
+                JsonObject updated = builder.build();
+                collection.put(path[1], updated.toString());
+                return "OK";
+            } catch (JsonException e) {
+                return INVALID_JSON;
+            }
+        } else {
+            return COL_NOT_FOUND;
+        } 
+    }
 
     public String insertDocument(String args){
         String[] argsList = args.split(" ");
