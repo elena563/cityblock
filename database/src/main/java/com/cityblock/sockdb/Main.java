@@ -49,23 +49,28 @@ public class Main {
                     // methods on collections
                     case "create":
                         result = Database.getInstance().createCollection(rest);
+                        break;
                     case "drop":
                         result = Database.getInstance().dropCollection(rest);
+                        break;
                     // methods on documents
                     case "read":
                         result = Database.getInstance().readDocument(rest);
+                        break;
                     case "insert":
                         result = Database.getInstance().insertDocument(rest);
+                        break;
                     case "write":
-                       
+                        result = Database.getInstance().writeDocument(rest);
+                        break;
                     case "delete":
                         result = Database.getInstance().deleteDocument(rest);
+                        break;
                     default:
                         result = "ERROR INVALID METHOD " + method;
-                      
-                    out.println(result);
-                    break;
+                        break;
                 }
+                out.println(result);
             }
         } catch (IOException e) {
             e.printStackTrace();
