@@ -19,6 +19,8 @@ public class Main {
 
         try (var serverSocket = new ServerSocket(PORT)) {
             System.out.println("Server listening on port " + PORT);
+            FileManager.loadData();
+
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Accepted connection from " + clientSocket.getInetAddress());
@@ -42,6 +44,7 @@ public class Main {
                 String[] parts = line.split(" ", 2);
                 String method = parts[0];
                 String rest = parts.length > 1 ? parts[1] : "";
+                String collection = rest.trim().split(" ", 2)[0].split("/", 2)[0];
 
                 String result = "";
 
@@ -49,9 +52,11 @@ public class Main {
                     // methods on collections
                     case "create":
                         result = Database.getInstance().createCollection(rest);
+                        FileManager.updateCollection(collection);
                         break;
                     case "drop":
                         result = Database.getInstance().dropCollection(rest);
+                        FileManager.updateCollection(collection);
                         break;
                     // methods on documents
                     case "read":
@@ -59,12 +64,17 @@ public class Main {
                         break;
                     case "insert":
                         result = Database.getInstance().insertDocument(rest);
+                        if (result.startsWith("OK ")) {
+                            FileManager.updateDocument(collection, result.substring(3));
+                        }
                         break;
                     case "write":
                         result = Database.getInstance().writeDocument(rest);
+                        FileManager.updateDocument(collection, rest.split(" ", 2)[0].split("/", 2)[1]);
                         break;
                     case "delete":
                         result = Database.getInstance().deleteDocument(rest);
+                        FileManager.updateDocument(collection, rest.split(" ", 2)[0].split("/", 2)[1]);
                         break;
                     default:
                         result = "ERROR INVALID METHOD " + method;

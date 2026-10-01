@@ -31,8 +31,8 @@ Every response is a single line terminated by `\n`.
 | `ERROR NOT_FOUND` | Document or collection does not exist |
 | `ERROR ALREADY_EXISTS` | Collection already exists |
 | `ERROR COLLECTION_NOT_FOUND` | Target collection does not exist |
-| `ERROR INVALID_QUERY` | Malformed filter expression |
-| `ERROR INTERNAL` | Unexpected server error |
+| `ERROR INVALID_JSON` | Malformed JSON payload |
+| `ERROR MISSING_ARGUMENT` | Missing required argument |
 
 
 ## Commands
@@ -58,7 +58,7 @@ OK
 drop /collection
 ```
 
-Deletes the collection and all its documents. Returns `ERROR NOT_FOUND` if the collection does not exist.
+Deletes the collection and all its documents. Returns `ERROR COLLECTION_NOT_FOUND` if the collection does not exist.
 
 **Example:**
 ```
@@ -99,7 +99,7 @@ read /collection/id
 read /collection filter EXPRESSION
 ```
 
-Returns `OK [...]` for collection reads and `OK {...}` for single-document reads. Returns `ERROR NOT_FOUND` if the document or collection does not exist.
+Returns `OK [...]` for collection reads and `OK {...}` for single-document reads. Returns `ERROR NOT_FOUND` or `ERROR COLLECTION_NOT_FOUND` if the document or collection does not exist.
 
 **Examples:**
 ```
@@ -146,7 +146,7 @@ delete /collection/id
 delete /collection filter EXPRESSION
 ```
 
-Returns `ERROR NOT_FOUND` if the document or collection does not exist.
+Returns `ERROR NOT_FOUND` or `ERROR COLLECTION_NOT_FOUND` if the document or collection does not exist.
 
 **Examples:**
 ```

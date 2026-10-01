@@ -47,3 +47,14 @@ Each collection is stored as a separate JSON file under `resources/`. Every writ
 Internal storage uses a `ConcurrentHashMap<String, ConcurrentHashMap<String, String>>`, where the outer key is the collection name, the inner key is the document UUID, and the value is the document serialized as a JSON string.
 
 **Package:** `com.cityblock.sockdb`
+
+
+## Project Execution
+
+### Database
+
+The database is a simple Java application. The following Maven commands can be used:
+
+* `mvn clean`: to clean the folder of temporary files,
+* `mvn compile`: to compile the application,
+* `mvn exec:java`: to start the application (assuming the main class is `Main.java`). It listens on the address `localhost` on port `3030`.

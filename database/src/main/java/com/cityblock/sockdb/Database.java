@@ -35,6 +35,10 @@ public class Database {
         return INSTANCE;
     }
 
+    public ConcurrentHashMap<String, ConcurrentHashMap<String, String>> getData(){
+        return data;
+    }
+
     public String readDocument(String args){
         String[] argsList = args.split(" ");
         String[] path = argsList[0].split("/");
