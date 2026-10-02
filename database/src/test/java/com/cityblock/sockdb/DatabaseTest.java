@@ -51,16 +51,16 @@ class DatabaseTest {
     void rejectsInvalidNames() {
         assertEquals("ERROR INVALID_PATH", db.createCollection("Players"));
         assertEquals("ERROR INVALID_PATH", db.createCollection("../evil"));
-        assertEquals("ERROR INVALID_PATH", db.createCollection("players/alice"));
+        assertEquals("ERROR INVALID_PATH", db.createCollection("players/elenina"));
         assertEquals("ERROR INVALID_PATH", db.dropCollection("../evil"));
     }
 
     @Test
     void insertKeepsJsonWithSpaces() {
         db.createCollection("players");
-        String response = db.insertDocument("players {\"username\": \"alice rossi\", \"balance\": 100}");
+        String response = db.insertDocument("players {\"username\": \"elenina rossi\", \"balance\": 100}");
 
-        assertEquals("OK {\"username\":\"alice rossi\",\"balance\":100}",
+        assertEquals("OK {\"username\":\"elenina rossi\",\"balance\":100}",
                 db.readDocument("players/" + id(response)));
     }
 
@@ -69,7 +69,7 @@ class DatabaseTest {
         db.createCollection("players");
 
         assertEquals("ERROR MISSING_ARGUMENT", db.insertDocument("players"));
-        assertEquals("ERROR INVALID_PATH", db.insertDocument("players/alice {\"a\": 1}"));
+        assertEquals("ERROR INVALID_PATH", db.insertDocument("players/elenina {\"a\": 1}"));
         assertEquals("ERROR INVALID_JSON", db.insertDocument("players {\"a\":"));
         assertEquals("ERROR INVALID_JSON", db.insertDocument("players [1, 2]"));
         assertEquals("ERROR INVALID_JSON", db.insertDocument("players \"ciao\""));
@@ -80,10 +80,10 @@ class DatabaseTest {
     @Test
     void readReturnsDocumentsInAnyOrder() {
         db.createCollection("players");
-        db.insertDocument("players {\"username\": \"alice\"}");
+        db.insertDocument("players {\"username\": \"elenina\"}");
         db.insertDocument("players {\"username\": \"bob\"}");
 
-        assertEquals(List.of("{\"username\":\"alice\"}", "{\"username\":\"bob\"}"),
+        assertEquals(List.of("{\"username\":\"bob\"}", "{\"username\":\"elenina\"}"),
                 documents(db.readDocument("players")));
     }
 
@@ -99,16 +99,16 @@ class DatabaseTest {
     @Test
     void readFiltersWithKeywordAndSpaces() {
         db.createCollection("players");
-        db.insertDocument("players {\"username\": \"alice\", \"balance\": 100}");
+        db.insertDocument("players {\"username\": \"elenina\", \"balance\": 100}");
         db.insertDocument("players {\"username\": \"bob\", \"balance\": 0}");
 
-        assertEquals(List.of("{\"username\":\"alice\",\"balance\":100}"),
+        assertEquals(List.of("{\"username\":\"elenina\",\"balance\":100}"),
                 documents(db.readDocument("players filter balance > 50")));
-        assertEquals(List.of("{\"username\":\"alice\",\"balance\":100}"),
+        assertEquals(List.of("{\"username\":\"elenina\",\"balance\":100}"),
                 documents(db.readDocument("players balance>50")));
         assertEquals(List.of("{\"username\":\"bob\",\"balance\":0}"),
                 documents(db.readDocument("players filter username = bob")));
-        assertEquals(List.of("{\"username\":\"alice\",\"balance\":100}"),
+        assertEquals(List.of("{\"username\":\"elenina\",\"balance\":100}"),
                 documents(db.readDocument("players filter balance >= 100")));
         assertEquals(2, documents(db.readDocument("players filter")).size());
         assertEquals(2, documents(db.readDocument("players")).size());
@@ -117,7 +117,7 @@ class DatabaseTest {
     @Test
     void readFiltersWithoutMatchingNothing() {
         db.createCollection("players");
-        db.insertDocument("players {\"username\": \"alice\", \"balance\": 100}");
+        db.insertDocument("players {\"username\": \"elenina\", \"balance\": 100}");
 
         assertEquals(List.of(), documents(db.readDocument("players filter balance < 50")));
         assertEquals(List.of(), documents(db.readDocument("players filter username = carol")));
@@ -127,10 +127,10 @@ class DatabaseTest {
     @Test
     void filterSkipsNonStringAttributes() {
         db.createCollection("games");
-        db.insertDocument("games {\"playerIds\": [\"alice\", \"bob\"], \"ended\": true}");
+        db.insertDocument("games {\"playerIds\": [\"elenina\", \"bob\"], \"ended\": true}");
         db.insertDocument("games {\"playerIds\": [\"carol\"], \"ended\": false}");
 
-        assertEquals(List.of(), documents(db.readDocument("games playerIds=alice")));
+        assertEquals(List.of(), documents(db.readDocument("games playerIds=elenina")));
         assertEquals(1, documents(db.readDocument("games ended=true")).size());
     }
 
@@ -146,19 +146,19 @@ class DatabaseTest {
     @Test
     void writePatchesOnlyGivenAttributes() {
         db.createCollection("players");
-        String documentId = id(db.insertDocument("players {\"username\": \"alice\", \"balance\": 100}"));
+        String documentId = id(db.insertDocument("players {\"username\": \"elenina\", \"balance\": 100}"));
 
         assertEquals("OK", db.writeDocument("players/" + documentId + " {\"balance\": 50}"));
-        assertEquals("OK {\"username\":\"alice\",\"balance\":50}", db.readDocument("players/" + documentId));
+        assertEquals("OK {\"username\":\"elenina\",\"balance\":50}", db.readDocument("players/" + documentId));
     }
 
     @Test
     void writeAcceptsNestedValues() {
         db.createCollection("players");
-        String documentId = id(db.insertDocument("players {\"username\": \"alice\"}"));
+        String documentId = id(db.insertDocument("players {\"username\": \"elenina\"}"));
 
         assertEquals("OK", db.writeDocument("players/" + documentId + " {\"tags\": [\"a\", \"b\"], \"active\": true}"));
-        assertEquals("OK {\"username\":\"alice\",\"tags\":[\"a\",\"b\"],\"active\":true}",
+        assertEquals("OK {\"username\":\"elenina\",\"tags\":[\"a\",\"b\"],\"active\":true}",
                 db.readDocument("players/" + documentId));
     }
 
@@ -179,7 +179,7 @@ class DatabaseTest {
     @Test
     void deleteRemovesDocument() {
         db.createCollection("players");
-        String documentId = id(db.insertDocument("players {\"username\": \"alice\"}"));
+        String documentId = id(db.insertDocument("players {\"username\": \"elenina\"}"));
 
         assertEquals("OK", db.deleteDocument("players/" + documentId));
         assertEquals("ERROR NOT_FOUND", db.deleteDocument("players/" + documentId));

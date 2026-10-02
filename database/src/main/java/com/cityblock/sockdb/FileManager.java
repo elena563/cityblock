@@ -30,7 +30,7 @@ public class FileManager {
 
     private static List<String> seedFiles(){
         try {
-            URL url = FileManager.class.getResource("");
+            URL url = FileManager.class.getClassLoader().getResource("");
             if (url == null || !url.getProtocol().equals("file")) {
                 return List.of();
             }
