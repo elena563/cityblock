@@ -11,6 +11,7 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.Json;
 import jakarta.json.JsonException;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonValue;
 
 public class Database {
     private static Database INSTANCE;
@@ -20,6 +21,7 @@ public class Database {
     private String EXISTS = "ERROR ALREADY_EXISTS";
     private String MISSING_ARG = "ERROR MISSING_ARGUMENT";
     private String INVALID_JSON = "ERROR INVALID_JSON";
+    private String INVALID_PATH = "ERROR INVALID_PATH";
 
     // collection name/uuid document/json
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data;
@@ -43,12 +45,21 @@ public class Database {
         String[] argsList = args.split(" ");
         String[] path = argsList[0].split("/");
 
+        if (path[0].isEmpty()){
+            return MISSING_ARG;
+        }
+
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
 
             if (argsList.length > 1){
-                String condition = argsList[1];
-                collection = filterCollection(collection, condition);
+                String condition = String.join(" ", argsList).substring(argsList[0].length()).strip();
+                if (condition.startsWith("filter ")){
+                    condition = condition.substring(7).strip();
+                }
+                if (!condition.isEmpty()){
+                    collection = filterCollection(collection, condition);
+                }
             }
 
             String result = "";
@@ -59,11 +70,11 @@ public class Database {
                         entries.add(entry.getValue());
                 }
                 result = "[" + String.join(",", entries) + "]";
-                return "OK {" + result + "}";
+                return "OK " + result;
             } else{
                 if (collection.containsKey(path[1])){
                     result = collection.get(path[1]);
-                    return "OK {" + result + "}";
+                    return "OK " + result;
                 }  else {
                 return NOT_FOUND;
                 }
@@ -80,18 +91,18 @@ public class Database {
         
         for (String op : operators){
             if (rawCondition.contains(op)){
-                condition = rawCondition.split(op);
+                condition = rawCondition.split(op, 2);
                 operator = op;
                 break;
             }
         }
 
-        if (condition == null || condition.length == 1){
+        if (condition == null || condition.length < 2){
             return collection;
         }
 
-        String attr = condition[0];
-        String targetVal = condition[1];
+        String attr = condition[0].strip();
+        String targetVal = condition[1].strip();
 
         ConcurrentHashMap<String, String> filtered = new ConcurrentHashMap<>();
 
@@ -99,22 +110,24 @@ public class Database {
                 try (JsonReader reader = Json.createReader(new StringReader(entry.getValue()))) {
                     JsonObject json = reader.readObject();
                     if (json.containsKey(attr)){
+                        JsonValue value = json.get(attr);
+                        String attrValue = value.getValueType() == JsonValue.ValueType.STRING ? json.getString(attr) : value.toString();
                         switch (operator) {
                             case "<":
                             case ">":
                             case "<=":
                             case ">=":
-                                if (satisfies(json.getString(attr), targetVal, operator)){
+                                if (satisfies(attrValue, targetVal, operator)){
                                     filtered.put(entry.getKey(), entry.getValue());
                                 }
                                 break;
                             case "!=":
-                                if (!json.getString(attr).equalsIgnoreCase(targetVal)){
+                                if (!attrValue.equalsIgnoreCase(targetVal)){
                                     filtered.put(entry.getKey(), entry.getValue());
                                 }
                                 break;
                             case "=":
-                                if (json.getString(attr).equalsIgnoreCase(targetVal)){
+                                if (attrValue.equalsIgnoreCase(targetVal)){
                                     filtered.put(entry.getKey(), entry.getValue());
                                 }
                                 break;
@@ -122,6 +135,8 @@ public class Database {
                                 break;
                         }
                     }
+                } catch (JsonException e) {
+                    continue;
                 }
             }
         return filtered;
@@ -157,6 +172,9 @@ public class Database {
         if (argsList.length == 1 || path.length == 1){
             return MISSING_ARG;
         }
+        if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
+            return INVALID_PATH;
+        }
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
 
@@ -189,20 +207,28 @@ public class Database {
     }
 
     public String insertDocument(String args){
-        String[] argsList = args.split(" ");
+        String[] argsList = args.split(" ", 2);
         String[] path = argsList[0].split("/");
 
-        if (path.length == 1){
+        if (argsList.length == 1){
             return MISSING_ARG;
+        }
+        if (path.length > 1){
+            return INVALID_PATH;
         }
 
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
-            
-            var id = UUID.randomUUID().toString();
-            collection.put(id, path[1]);
-            return "OK " + id;
-            
+
+            try (JsonReader docReader = Json.createReader(new StringReader(argsList[1]))) {
+                JsonObject jsonDoc = docReader.readObject();
+
+                var id = UUID.randomUUID().toString();
+                collection.put(id, jsonDoc.toString());
+                return "OK " + id;
+            } catch (JsonException e) {
+                return INVALID_JSON;
+            }
         } else {
             return COL_NOT_FOUND;
         } 
@@ -214,6 +240,9 @@ public class Database {
 
         if (path.length == 1){
             return MISSING_ARG;
+        }
+        if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
+            return INVALID_PATH;
         }
 
         if (data.containsKey(path[0])){
@@ -234,6 +263,10 @@ public class Database {
         String[] argsList = args.split(" ");
         String[] path = argsList[0].split("/");
 
+        if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
+            return INVALID_PATH;
+        }
+
         if (data.containsKey(path[0])){
             return EXISTS;
         } else {
@@ -246,6 +279,10 @@ public class Database {
     public String dropCollection(String args){
         String[] argsList = args.split(" ");
         String[] path = argsList[0].split("/");
+
+        if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
+            return INVALID_PATH;
+        }
 
         if (data.containsKey(path[0])){
             data.remove(path[0]);

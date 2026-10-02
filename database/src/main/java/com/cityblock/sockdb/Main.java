@@ -44,7 +44,9 @@ public class Main {
                 String[] parts = line.split(" ", 2);
                 String method = parts[0];
                 String rest = parts.length > 1 ? parts[1] : "";
-                String collection = rest.trim().split(" ", 2)[0].split("/", 2)[0];
+                String[] path = rest.trim().split("\\s+", 2)[0].split("/", 2);
+                String collection = path[0];
+                String document = path.length > 1 ? path[1] : "";
 
                 String result = "";
 
@@ -70,11 +72,15 @@ public class Main {
                         break;
                     case "write":
                         result = Database.getInstance().writeDocument(rest);
-                        FileManager.updateDocument(collection, rest.split(" ", 2)[0].split("/", 2)[1]);
+                        if (!document.isEmpty()){
+                            FileManager.updateDocument(collection, document);
+                        }
                         break;
                     case "delete":
                         result = Database.getInstance().deleteDocument(rest);
-                        FileManager.updateDocument(collection, rest.split(" ", 2)[0].split("/", 2)[1]);
+                        if (!document.isEmpty()){
+                            FileManager.updateDocument(collection, document);
+                        }
                         break;
                     default:
                         result = "ERROR INVALID METHOD " + method;

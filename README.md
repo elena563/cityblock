@@ -34,7 +34,7 @@ SockDB is a lightweight, schema-free document database built for this project. I
 
 ### Persistence
 
-Each collection is stored as a separate JSON file under `resources/`. Every write operation triggers a synchronous, synchronized flush to disk. On startup, `FileManager` reads all `.json` files from `resources/` and pre-loads them into memory.
+Each document is stored as a separate JSON file under `resources/<collectionName>`. Every write operation triggers a synchronous, synchronized flush to disk. On startup, `FileManager` reads all `.json` files from `resources/` and pre-loads them into memory.
 
 ### Structure
 
