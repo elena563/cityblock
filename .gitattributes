@@ -1,0 +1,23 @@
+# Java and shell scripts
+*.java text eol=lf
+*.sh text eol=lf
+
+# Maven Wrapper
+mvnw text eol=lf
+*.cmd text eol=crlf
+
+# Common text files
+*.md text eol=lf
+*.properties text eol=lf
+*.xml text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Binary files
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
