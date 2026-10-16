@@ -1,35 +1,60 @@
 package com.cityblock.sockdb;
 
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
 import jakarta.json.Json;
+import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonException;
 import jakarta.json.JsonReader;
+import jakarta.json.JsonReaderFactory;
 import jakarta.json.JsonValue;
 
+/**
+ * In-memory document store organised as collections of JSON documents.
+ *
+ * <p>Every public operation returns either an {@code OK} response or one of the
+ * following error codes:
+ * <ul>
+ *   <li>{@code ERROR NOT_FOUND} - the requested document does not exist.</li>
+ *   <li>{@code ERROR COLLECTION_NOT_FOUND} - the addressed collection does not exist.</li>
+ *   <li>{@code ERROR ALREADY_EXISTS} - a collection with the same name already exists.</li>
+ *   <li>{@code ERROR MISSING_ARGUMENT} - a required argument is missing.</li>
+ *   <li>{@code ERROR INVALID_JSON} - the supplied document is not valid JSON.</li>
+ *   <li>{@code ERROR INVALID_PATH} - the supplied path is malformed or not allowed.</li>
+ * </ul>
+ */
 public class Database {
     private static Database INSTANCE;
 
-    private String NOT_FOUND = "ERROR NOT_FOUND";
-    private String COL_NOT_FOUND = "ERROR COLLECTION_NOT_FOUND";
-    private String EXISTS = "ERROR ALREADY_EXISTS";
-    private String MISSING_ARG = "ERROR MISSING_ARGUMENT";
-    private String INVALID_JSON = "ERROR INVALID_JSON";
-    private String INVALID_PATH = "ERROR INVALID_PATH";
+    private static final String NOT_FOUND = "ERROR NOT_FOUND";
+    private static final String COL_NOT_FOUND = "ERROR COLLECTION_NOT_FOUND";
+    private static final String EXISTS = "ERROR ALREADY_EXISTS";
+    private static final String MISSING_ARG = "ERROR MISSING_ARGUMENT";
+    private static final String INVALID_JSON = "ERROR INVALID_JSON";
+    private static final String INVALID_PATH = "ERROR INVALID_PATH";
+    private static final String OK = "OK";
+    private static final String FILTER_PREFIX = "filter ";
+
+    private static final JsonReaderFactory READER_FACTORY = Json.createReaderFactory(Map.of());
 
     // collection name/uuid document/json
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data;
+    private final ConcurrentMap<String, ConcurrentMap<String, String>> data;
 
     private Database() {
         data = new ConcurrentHashMap<>();
     }
 
+    /**
+     * Returns the process-wide singleton instance.
+     *
+     * @return the shared {@code Database} instance
+     */
     public static Database getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new Database();
@@ -37,13 +62,27 @@ public class Database {
         return INSTANCE;
     }
 
-    public ConcurrentHashMap<String, ConcurrentHashMap<String, String>> getData(){
+    /**
+     * Returns the raw backing store, mapping collection names to their documents.
+     *
+     * @return the mutable collection map
+     */
+    public ConcurrentMap<String, ConcurrentMap<String, String>> getData(){
         return data;
     }
 
+    /**
+     * Reads a document or lists a collection.
+     *
+     * <p>Expected argument format: {@code <collection>[/<documentId>] [filter <attribute> <operator> <value>]}.
+     * When the filter prefix is absent no filtering is applied.
+     *
+     * @param args the raw request
+     * @return {@code OK <json>} on success, otherwise an error code
+     */
     public String readDocument(String args){
-        String[] argsList = args.split(" ");
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ", 2);
+        String[] path = argsArr[0].split("/", -1);
 
         if (path[0].isEmpty()){
             return MISSING_ARG;
@@ -52,29 +91,29 @@ public class Database {
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
 
-            if (argsList.length > 1){
-                String condition = String.join(" ", argsList).substring(argsList[0].length()).strip();
-                if (condition.startsWith("filter ")){
-                    condition = condition.substring(7).strip();
+            if (argsArr.length > 1){
+                String condition = argsArr[1].strip();
+                if (condition.startsWith(FILTER_PREFIX)){
+                    condition = condition.substring(FILTER_PREFIX.length()).strip();
                 }
                 if (!condition.isEmpty()){
                     collection = filterCollection(collection, condition);
                 }
             }
 
-            String result = "";
-
             if (path.length == 1){
-                ArrayList<String> entries = new ArrayList<>();
+                JsonArrayBuilder array = Json.createArrayBuilder();
                 for (Map.Entry<String, String> entry : collection.entrySet()) {
-                        entries.add(entry.getValue());
+                    try (JsonReader reader = READER_FACTORY.createReader(new StringReader(entry.getValue()))) {
+                        array.add(reader.readObject());
+                    } catch (JsonException e) {
+                        continue;
+                    }
                 }
-                result = "[" + String.join(",", entries) + "]";
-                return "OK " + result;
+                return OK + " " + array.build().toString();
             } else{
                 if (collection.containsKey(path[1])){
-                    result = collection.get(path[1]);
-                    return "OK " + result;
+                    return OK + " " + collection.get(path[1]);
                 }  else {
                 return NOT_FOUND;
                 }
@@ -84,30 +123,31 @@ public class Database {
         }
     }
 
-    public ConcurrentHashMap<String, String> filterCollection(ConcurrentHashMap<String, String> collection, String rawCondition){
+
+    private static ConcurrentMap<String, String> filterCollection(ConcurrentMap<String, String> collection, String rawCondition){
         String[] operators = {">=", "<=", "!=", ">", "<", "="};
         String operator = "";
-        String[] condition = null;
+        String[] conditionArr = null;
         
         for (String op : operators){
             if (rawCondition.contains(op)){
-                condition = rawCondition.split(op, 2);
+                conditionArr = rawCondition.split(op, 2);
                 operator = op;
                 break;
             }
         }
 
-        if (condition == null || condition.length < 2){
+        if (conditionArr == null || conditionArr.length < 2){
             return collection;
         }
 
-        String attr = condition[0].strip();
-        String targetVal = condition[1].strip();
+        String attr = conditionArr[0].strip();
+        String targetVal = conditionArr[1].strip();
 
-        ConcurrentHashMap<String, String> filtered = new ConcurrentHashMap<>();
+        ConcurrentMap<String, String> filtered = new ConcurrentHashMap<>();
 
         for (Map.Entry<String, String> entry : collection.entrySet()) {
-                try (JsonReader reader = Json.createReader(new StringReader(entry.getValue()))) {
+                try (JsonReader reader = READER_FACTORY.createReader(new StringReader(entry.getValue()))) {
                     JsonObject json = reader.readObject();
                     if (json.containsKey(attr)){
                         JsonValue value = json.get(attr);
@@ -142,7 +182,7 @@ public class Database {
         return filtered;
     }
 
-    private boolean satisfies(String value, String target, String op){
+    private static boolean satisfies(String value, String target, String op){
         try {
             double a = Double.parseDouble(value);
             double b = Double.parseDouble(target);
@@ -165,11 +205,19 @@ public class Database {
         }
     }
 
+    /**
+     * Patches an existing document, adding or replacing the given attributes.
+     *
+     * <p>Expected argument format: {@code <collection>/<documentId> <json>}.
+     *
+     * @param args the raw request
+     * @return {@code OK} on success, otherwise an error code
+     */
     public String writeDocument(String args){
-        String[] argsList = args.split(" ", 2);
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ", 2);
+        String[] path = argsArr[0].split("/", -1);
 
-        if (argsList.length == 1 || path.length == 1){
+        if (argsArr.length == 1 || path.length == 1){
             return MISSING_ARG;
         }
         if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
@@ -182,11 +230,11 @@ public class Database {
                 return NOT_FOUND;
             }
 
-            try (JsonReader docReader = Json.createReader(new StringReader(collection.get(path[1])))) {
+            try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(collection.get(path[1])))) {
                 JsonObject jsonDoc = docReader.readObject();
                 JsonObjectBuilder builder = Json.createObjectBuilder(jsonDoc);
 
-                try (JsonReader inputReader = Json.createReader(new StringReader(argsList[1]))) {
+                try (JsonReader inputReader = READER_FACTORY.createReader(new StringReader(argsArr[1]))) {
                     JsonObject jsonInput = inputReader.readObject();
                     for (var input : jsonInput.entrySet()) {
                         String attr = input.getKey();
@@ -197,7 +245,7 @@ public class Database {
 
                 JsonObject updated = builder.build();
                 collection.put(path[1], updated.toString());
-                return "OK";
+                return OK;
             } catch (JsonException e) {
                 return INVALID_JSON;
             }
@@ -206,11 +254,19 @@ public class Database {
         } 
     }
 
+    /**
+     * Inserts a new document into a collection, assigning it a generated id.
+     *
+     * <p>Expected argument format: {@code <collection> <json>}.
+     *
+     * @param args the raw request
+     * @return {@code OK <id>} on success, otherwise an error code
+     */
     public String insertDocument(String args){
-        String[] argsList = args.split(" ", 2);
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ", 2);
+        String[] path = argsArr[0].split("/", -1);
 
-        if (argsList.length == 1){
+        if (argsArr.length == 1){
             return MISSING_ARG;
         }
         if (path.length > 1){
@@ -220,12 +276,12 @@ public class Database {
         if (data.containsKey(path[0])){
             var collection = data.get(path[0]);
 
-            try (JsonReader docReader = Json.createReader(new StringReader(argsList[1]))) {
+            try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(argsArr[1]))) {
                 JsonObject jsonDoc = docReader.readObject();
 
                 var id = UUID.randomUUID().toString();
                 collection.put(id, jsonDoc.toString());
-                return "OK " + id;
+                return OK + " " + id;
             } catch (JsonException e) {
                 return INVALID_JSON;
             }
@@ -234,9 +290,17 @@ public class Database {
         } 
     }
 
+    /**
+     * Deletes a document.
+     *
+     * <p>Expected argument format: {@code <collection>/<documentId>}.
+     *
+     * @param args the raw request
+     * @return {@code OK} on success, otherwise an error code
+     */
     public String deleteDocument(String args){
-        String[] argsList = args.split(" ");
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ");
+        String[] path = argsArr[0].split("/", -1);
 
         if (path.length == 1){
             return MISSING_ARG;
@@ -250,7 +314,7 @@ public class Database {
 
             if (collection.containsKey(path[1])){
                 collection.remove(path[1]);
-                return "OK";
+                return OK;
             }  else {
                 return NOT_FOUND;
             }
@@ -259,9 +323,17 @@ public class Database {
         } 
     }
 
+    /**
+     * Creates an empty collection.
+     *
+     * <p>Expected argument format: {@code <collection>}.
+     *
+     * @param args the raw request
+     * @return {@code OK} on success, otherwise an error code
+     */
     public String createCollection(String args){
-        String[] argsList = args.split(" ");
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ");
+        String[] path = argsArr[0].split("/", -1);
 
         if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
             return INVALID_PATH;
@@ -270,15 +342,23 @@ public class Database {
         if (data.containsKey(path[0])){
             return EXISTS;
         } else {
-            ConcurrentHashMap<String, String> collection = new ConcurrentHashMap<>();
+            ConcurrentMap<String, String> collection = new ConcurrentHashMap<>();
             data.put(path[0], collection);
-            return "OK";
+            return OK;
         }
     }
 
+    /**
+     * Deletes a collection and all its documents.
+     *
+     * <p>Expected argument format: {@code <collection>}.
+     *
+     * @param args the raw request
+     * @return {@code OK} on success, otherwise an error code
+     */
     public String dropCollection(String args){
-        String[] argsList = args.split(" ");
-        String[] path = argsList[0].split("/");
+        String[] argsArr = args.split(" ");
+        String[] path = argsArr[0].split("/", -1);
 
         if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
             return INVALID_PATH;
@@ -286,7 +366,7 @@ public class Database {
 
         if (data.containsKey(path[0])){
             data.remove(path[0]);
-            return "OK";
+            return OK;
         } else {
             return NOT_FOUND;
         }

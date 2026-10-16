@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 public class FileManager {
@@ -82,7 +83,7 @@ public class FileManager {
     }
 
     public static void loadData() {
-        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data = Database.getInstance().getData();
+        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
 
         try {
             Path path = dataDir();
@@ -95,7 +96,7 @@ public class FileManager {
             }
 
             for (File collection : collections) {
-                ConcurrentHashMap<String, String> collectionData = new ConcurrentHashMap<>();
+                ConcurrentMap<String, String> collectionData = new ConcurrentHashMap<>();
                 File[] documents = collection.listFiles(file ->
                         file.isFile() && file.getName().endsWith(".json"));
 
@@ -114,7 +115,7 @@ public class FileManager {
     }
 
     public static void updateCollection(String collection) {
-        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data = Database.getInstance().getData();
+        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
 
         try {
             Path path = dataDir().resolve(collection);
@@ -140,7 +141,7 @@ public class FileManager {
     }
 
     public static void updateDocument(String collection, String document) {
-        ConcurrentHashMap<String, ConcurrentHashMap<String, String>> data = Database.getInstance().getData();
+        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
         String filename = collection + "/" + document + ".json";
 
         try {

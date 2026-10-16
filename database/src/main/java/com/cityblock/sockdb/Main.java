@@ -48,7 +48,7 @@ public class Main {
                 String collection = path[0];
                 String document = path.length > 1 ? path[1] : "";
 
-                String result = "";
+                String result;
 
                 switch (method) {
                     // methods on collections
