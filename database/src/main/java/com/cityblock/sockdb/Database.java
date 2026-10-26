@@ -88,9 +88,17 @@ public class Database {
             return MISSING_ARG;
         }
 
-        if (data.containsKey(path[0])){
-            var collection = data.get(path[0]);
+        if (path.length > 2) {
+            return INVALID_PATH;
+        }
 
+        var collection = data.get(path[0]);
+
+        if (collection == null) {
+            return COL_NOT_FOUND;
+        }
+
+        if (path.length == 1){
             if (argsArr.length > 1){
                 String condition = argsArr[1].strip();
                 if (condition.startsWith(FILTER_PREFIX)){
@@ -101,26 +109,22 @@ public class Database {
                 }
             }
 
-            if (path.length == 1){
-                JsonArrayBuilder array = Json.createArrayBuilder();
-                for (Map.Entry<String, String> entry : collection.entrySet()) {
-                    try (JsonReader reader = READER_FACTORY.createReader(new StringReader(entry.getValue()))) {
-                        array.add(reader.readObject());
-                    } catch (JsonException e) {
-                        continue;
-                    }
-                }
-                return OK + " " + array.build().toString();
-            } else{
-                if (collection.containsKey(path[1])){
-                    return OK + " " + collection.get(path[1]);
-                }  else {
-                return NOT_FOUND;
+            JsonArrayBuilder array = Json.createArrayBuilder();
+            for (Map.Entry<String, String> entry : collection.entrySet()) {
+                try (JsonReader reader = READER_FACTORY.createReader(new StringReader(entry.getValue()))) {
+                    array.add(reader.readObject());
+                } catch (JsonException e) {
+                    continue;
                 }
             }
-        } else {
-            return COL_NOT_FOUND;
-        }
+            return OK + " " + array.build().toString();
+        }   
+
+        if (collection.containsKey(path[1])){
+            return OK + " " + collection.get(path[1]);
+        } 
+         
+        return NOT_FOUND;
     }
 
 
@@ -130,10 +134,9 @@ public class Database {
         String[] conditionArr = null;
         
         for (String op : operators){
-            if (rawCondition.contains(op)){
+            if (conditionArr == null && rawCondition.contains(op)){
                 conditionArr = rawCondition.split(op, 2);
                 operator = op;
-                break;
             }
         }
 
@@ -217,8 +220,12 @@ public class Database {
         String[] argsArr = args.split(" ", 2);
         String[] path = argsArr[0].split("/", -1);
 
-        if (argsArr.length == 1 || path.length == 1){
+        if (argsArr.length == 1) {
             return MISSING_ARG;
+        }
+
+        if (path.length != 2) {
+            return path.length == 1 ? MISSING_ARG : INVALID_PATH;
         }
         if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
             return INVALID_PATH;
@@ -302,8 +309,8 @@ public class Database {
         String[] argsArr = args.split(" ");
         String[] path = argsArr[0].split("/", -1);
 
-        if (path.length == 1){
-            return MISSING_ARG;
+        if (path.length != 2) {
+            return path.length == 1 ? MISSING_ARG : INVALID_PATH;
         }
         if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
             return INVALID_PATH;

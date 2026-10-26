@@ -56,12 +56,21 @@ class DatabaseTest {
     }
 
     @Test
+    void rejectsPathsWithMoreThanTwoSegments() {
+        db.createCollection("players");
+        String documentId = id(db.insertDocument("players {\"balance\": 100}"));
+
+        assertEquals("ERROR INVALID_PATH", db.readDocument("players/" + documentId + "/extra"));
+        assertEquals("ERROR INVALID_PATH", db.writeDocument("players/" + documentId + "/extra {\"balance\": 50}"));
+        assertEquals("ERROR INVALID_PATH", db.deleteDocument("players/" + documentId + "/extra"));
+    }
+
+    @Test
     void insertKeepsJsonWithSpaces() {
         db.createCollection("players");
         String response = db.insertDocument("players {\"username\": \"elenina rossi\", \"balance\": 100}");
 
-        assertEquals("OK {\"username\":\"elenina rossi\",\"balance\":100}",
-                db.readDocument("players/" + id(response)));
+        assertEquals("OK {\"username\":\"elenina rossi\",\"balance\":100}", db.readDocument("players/" + id(response)));
     }
 
     @Test
@@ -141,6 +150,14 @@ class DatabaseTest {
         db.insertDocument("players {\"balance\": 100}");
 
         assertEquals(List.of("{\"balance\":100}"), documents(db.readDocument("players balance>50")));
+    }
+
+    @Test
+    void doesNotFilterBeforeLookingUpSpecificDocument() {
+        db.createCollection("players");
+        String documentId = id(db.insertDocument("players {\"balance\": 10}"));
+
+        assertEquals("OK {\"balance\":10}", db.readDocument("players/" + documentId + " filter balance > 50"));
     }
 
     @Test
