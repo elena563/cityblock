@@ -47,12 +47,14 @@ public class Database {
     private static final String FILTER_PREFIX = "filter ";
     private static final Pattern FILTER_PATTERN =
         Pattern.compile("^\\s*([^\\s<>=!]+)\\s*(>=|<=|!=|=|>|<)\\s*(.+?)\\s*$");
+    private static final Pattern VALID_NAME = Pattern.compile("[a-z0-9_-]{1,64}");
 
     /**
      * A record representing a parsed filter.
      */
-    private record ParsedFilter(String attribute, Operator operator, String targetValue) {
-    }
+    private record ParsedFilter(String attribute, Operator operator, String targetValue) {}
+
+    private record Target(String collection, String docId, String rest, int pathLength) {}
 
     private enum Operator {
         GTE(">=", comparison -> comparison >= 0),
@@ -125,37 +127,32 @@ public class Database {
      * @return {@code OK <json>} on success, otherwise an error code
      */
     public String readDocument(String args){
-        String[] argsArr = args.split(" ", 2);
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (path[0].isEmpty()){
-            return MISSING_ARG;
+        String pathError = validatePath(target, 2);
+        if (pathError != null) {
+            return pathError;
         }
 
-        if (path.length > 2) {
-            return INVALID_PATH;
-        }
-
-        var collection = data.get(path[0]);
+        var collection = data.get(target.collection());
 
         if (collection == null) {
             return COL_NOT_FOUND;
         }
 
-        if (path.length == 1){
-            if (argsArr.length > 1){
-                String condition = argsArr[1].strip();
-                if (condition.startsWith(FILTER_PREFIX)){
-                    condition = condition.substring(FILTER_PREFIX.length()).strip();
-                }
-                if (!condition.isEmpty()){
-                    ParsedFilter filter = parseFilter(condition);
+        if (target.docId().isEmpty()){
+            String condition = target.rest();
+            if (condition.startsWith(FILTER_PREFIX)){
+                condition = condition.substring(FILTER_PREFIX.length()).strip();
+            }
 
-                    if (filter == null) {
-                        return INVALID_FILTER;
-                    }
-                    collection = filterCollection(collection, filter);
+            if (!condition.isEmpty()) {
+                ParsedFilter filter = parseFilter(condition);
+                if (filter == null) {
+                    return INVALID_FILTER;
                 }
+
+                collection = filterCollection(collection, filter);
             }
 
             JsonArrayBuilder array = Json.createArrayBuilder();
@@ -169,11 +166,58 @@ public class Database {
             return OK + " " + array.build().toString();
         }   
 
-        if (collection.containsKey(path[1])){
-            return OK + " " + collection.get(path[1]);
+        if (collection.containsKey(target.docId())){
+            return OK + " " + collection.get(target.docId());
         } 
          
         return NOT_FOUND;
+    }
+
+    private static boolean isValidName(String value) {
+        return value != null && VALID_NAME.matcher(value).matches();
+    }
+
+    private static String validatePath(Target target, int maxSegments) {
+        if (target.collection().isEmpty()) {
+            return MISSING_ARG;
+        }
+
+        if (target.pathLength() > maxSegments
+                || !isValidName(target.collection())
+                || (target.pathLength() == 2 && !isValidName(target.docId()))) {
+            return INVALID_PATH;
+        }
+
+        return null;
+    }
+
+    private static Target parse(String args) {
+        String input = args.strip();
+
+        int separator = input.indexOf(' ');
+
+        String path;
+        String rest;
+
+        if (separator < 0) {
+            path = input;
+            rest = "";
+        } else {
+            path = input.substring(0, separator);
+            rest = input.substring(separator + 1).strip();
+        }
+
+        String[] pathParts = path.split("/", -1);
+
+        if (pathParts.length == 1) {
+            return new Target(pathParts[0], "", rest, 1);
+        }
+
+        if (pathParts.length == 2) {
+            return new Target(pathParts[0], pathParts[1], rest, 2);
+        }
+
+        return new Target(pathParts[0], null, rest, pathParts.length);
     }
 
     private static ParsedFilter parseFilter(String rawCondition) {
@@ -242,48 +286,45 @@ public class Database {
      * @return {@code OK} on success, otherwise an error code
      */
     public String writeDocument(String args){
-        String[] argsArr = args.split(" ", 2);
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (argsArr.length == 1) {
+        String pathError = validatePath(target, 2);
+        if (pathError != null) {
+            return pathError;
+        }
+
+        if (target.pathLength() < 2 || target.rest().isEmpty()) {
             return MISSING_ARG;
         }
+        var collection = data.get(target.collection());
 
-        if (path.length != 2) {
-            return path.length == 1 ? MISSING_ARG : INVALID_PATH;
-        }
-        if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
-            return INVALID_PATH;
-        }
-        if (data.containsKey(path[0])){
-            var collection = data.get(path[0]);
-
-            if (!collection.containsKey(path[1])){
-                return NOT_FOUND;
-            }
-
-            try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(collection.get(path[1])))) {
-                JsonObject jsonDoc = docReader.readObject();
-                JsonObjectBuilder builder = Json.createObjectBuilder(jsonDoc);
-
-                try (JsonReader inputReader = READER_FACTORY.createReader(new StringReader(argsArr[1]))) {
-                    JsonObject jsonInput = inputReader.readObject();
-                    for (var input : jsonInput.entrySet()) {
-                        String attr = input.getKey();
-                        var newVal = input.getValue();
-                        builder.add(attr, newVal);
-                    }
-                }
-
-                JsonObject updated = builder.build();
-                collection.put(path[1], updated.toString());
-                return OK;
-            } catch (JsonException e) {
-                return INVALID_JSON;
-            }
-        } else {
+        if (collection == null) {
             return COL_NOT_FOUND;
-        } 
+        }
+
+        if (!collection.containsKey(target.docId())){
+            return NOT_FOUND;
+        }
+
+        try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(collection.get(target.docId())))) {
+            JsonObject jsonDoc = docReader.readObject();
+            JsonObjectBuilder builder = Json.createObjectBuilder(jsonDoc);
+
+            try (JsonReader inputReader = READER_FACTORY.createReader(new StringReader(target.rest()))) {
+                JsonObject jsonInput = inputReader.readObject();
+                for (var input : jsonInput.entrySet()) {
+                    String attr = input.getKey();
+                    var newVal = input.getValue();
+                    builder.add(attr, newVal);
+                }
+            }
+
+            JsonObject updated = builder.build();
+            collection.put(target.docId(), updated.toString());
+            return OK;
+        } catch (JsonException e) {
+            return INVALID_JSON;
+        }
     }
 
     /**
@@ -295,31 +336,32 @@ public class Database {
      * @return {@code OK <id>} on success, otherwise an error code
      */
     public String insertDocument(String args){
-        String[] argsArr = args.split(" ", 2);
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (argsArr.length == 1){
+        String pathError = validatePath(target, 1);
+        if (pathError != null) {
+            return pathError;
+        }
+
+        if (target.rest().isEmpty()) {
             return MISSING_ARG;
         }
-        if (path.length > 1){
-            return INVALID_PATH;
+
+        var collection = data.get(target.collection());
+
+        if (collection == null) {
+            return COL_NOT_FOUND;
         }
 
-        if (data.containsKey(path[0])){
-            var collection = data.get(path[0]);
+        try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(target.rest()))) {
+            JsonObject jsonDoc = docReader.readObject();
 
-            try (JsonReader docReader = READER_FACTORY.createReader(new StringReader(argsArr[1]))) {
-                JsonObject jsonDoc = docReader.readObject();
-
-                var id = UUID.randomUUID().toString();
-                collection.put(id, jsonDoc.toString());
-                return OK + " " + id;
-            } catch (JsonException e) {
-                return INVALID_JSON;
-            }
-        } else {
-            return COL_NOT_FOUND;
-        } 
+            var id = UUID.randomUUID().toString();
+            collection.put(id, jsonDoc.toString());
+            return OK + " " + id;
+        } catch (JsonException e) {
+            return INVALID_JSON;
+        }
     }
 
     /**
@@ -331,28 +373,28 @@ public class Database {
      * @return {@code OK} on success, otherwise an error code
      */
     public String deleteDocument(String args){
-        String[] argsArr = args.split(" ");
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (path.length != 2) {
-            return path.length == 1 ? MISSING_ARG : INVALID_PATH;
-        }
-        if (!path[1].matches("^[a-z0-9_-]{1,64}$")){
-            return INVALID_PATH;
+        String pathError = validatePath(target, 2);
+        if (pathError != null) {
+            return pathError;
         }
 
-        if (data.containsKey(path[0])){
-            var collection = data.get(path[0]);
+        if (target.pathLength() < 2) {
+            return MISSING_ARG;
+        }
 
-            if (collection.containsKey(path[1])){
-                collection.remove(path[1]);
-                return OK;
-            }  else {
-                return NOT_FOUND;
-            }
-        } else {
+        var collection = data.get(target.collection());
+
+        if (collection == null) {
             return COL_NOT_FOUND;
-        } 
+        }
+
+        if (collection.remove(target.docId()) != null) {
+            return OK;
+        }
+
+        return NOT_FOUND;
     }
 
     /**
@@ -364,20 +406,24 @@ public class Database {
      * @return {@code OK} on success, otherwise an error code
      */
     public String createCollection(String args){
-        String[] argsArr = args.split(" ");
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
+        String pathError = validatePath(target, 1);
+        if (pathError != null) {
+            return pathError;
+        }
+
+        if (!target.rest().isEmpty()) {
             return INVALID_PATH;
         }
 
-        if (data.containsKey(path[0])){
+        ConcurrentMap<String, String> collection = new ConcurrentHashMap<>();
+
+        if (data.putIfAbsent(target.collection(), collection) != null) {
             return EXISTS;
-        } else {
-            ConcurrentMap<String, String> collection = new ConcurrentHashMap<>();
-            data.put(path[0], collection);
-            return OK;
         }
+
+        return OK;
     }
 
     /**
@@ -389,18 +435,21 @@ public class Database {
      * @return {@code OK} on success, otherwise an error code
      */
     public String dropCollection(String args){
-        String[] argsArr = args.split(" ");
-        String[] path = argsArr[0].split("/", -1);
+        Target target = parse(args);
 
-        if (path.length > 1 || !path[0].matches("^[a-z0-9_-]{1,64}$")){
+        String pathError = validatePath(target, 1);
+        if (pathError != null) {
+            return pathError;
+        }
+
+        if (!target.rest().isEmpty()) {
             return INVALID_PATH;
         }
 
-        if (data.containsKey(path[0])){
-            data.remove(path[0]);
+        if (data.remove(target.collection()) != null) {
             return OK;
-        } else {
-            return NOT_FOUND;
         }
+
+        return NOT_FOUND;
     }
 }
