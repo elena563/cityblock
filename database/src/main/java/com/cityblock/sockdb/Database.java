@@ -2,9 +2,13 @@ package com.cityblock.sockdb;
 
 import java.io.StringReader;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.IntPredicate;
 
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
@@ -38,8 +42,48 @@ public class Database {
     private static final String MISSING_ARG = "ERROR MISSING_ARGUMENT";
     private static final String INVALID_JSON = "ERROR INVALID_JSON";
     private static final String INVALID_PATH = "ERROR INVALID_PATH";
+    private static final String INVALID_FILTER = "ERROR INVALID_FILTER";
     private static final String OK = "OK";
     private static final String FILTER_PREFIX = "filter ";
+    private static final Pattern FILTER_PATTERN =
+        Pattern.compile("^\\s*([^\\s<>=!]+)\\s*(>=|<=|!=|=|>|<)\\s*(.+?)\\s*$");
+
+    /**
+     * A record representing a parsed filter.
+     */
+    private record ParsedFilter(String attribute, Operator operator, String targetValue) {
+    }
+
+    private enum Operator {
+        GTE(">=", comparison -> comparison >= 0),
+        LTE("<=", comparison -> comparison <= 0),
+        NEQ("!=", comparison -> comparison != 0),
+        GT(">", comparison -> comparison > 0),
+        LT("<", comparison -> comparison < 0),
+        EQ("=", comparison -> comparison == 0);
+
+        private final String symbol;
+        private final IntPredicate condition;
+
+        Operator(String symbol, IntPredicate condition) {
+            this.symbol = symbol;
+            this.condition = condition;
+        }
+
+        private boolean test(int comparison) {
+            return condition.test(comparison);
+        }
+
+        private static Operator fromSymbol(String symbol) {
+            for (Operator operator : values()) {
+                if (operator.symbol.equals(symbol)) {
+                    return operator;
+                }
+            }
+
+            return null;
+        }
+    }
 
     private static final JsonReaderFactory READER_FACTORY = Json.createReaderFactory(Map.of());
 
@@ -105,7 +149,12 @@ public class Database {
                     condition = condition.substring(FILTER_PREFIX.length()).strip();
                 }
                 if (!condition.isEmpty()){
-                    collection = filterCollection(collection, condition);
+                    ParsedFilter filter = parseFilter(condition);
+
+                    if (filter == null) {
+                        return INVALID_FILTER;
+                    }
+                    collection = filterCollection(collection, filter);
                 }
             }
 
@@ -127,25 +176,30 @@ public class Database {
         return NOT_FOUND;
     }
 
+    private static ParsedFilter parseFilter(String rawCondition) {
+        Matcher matcher = FILTER_PATTERN.matcher(rawCondition);
 
-    private static ConcurrentMap<String, String> filterCollection(ConcurrentMap<String, String> collection, String rawCondition){
-        String[] operators = {">=", "<=", "!=", ">", "<", "="};
-        String operator = "";
-        String[] conditionArr = null;
-        
-        for (String op : operators){
-            if (conditionArr == null && rawCondition.contains(op)){
-                conditionArr = rawCondition.split(op, 2);
-                operator = op;
-            }
+        if (!matcher.matches()) {
+            return null;
         }
 
-        if (conditionArr == null || conditionArr.length < 2){
-            return collection;
+        Operator operator = Operator.fromSymbol(matcher.group(2));
+
+        if (operator == null) {
+            return null;
         }
 
-        String attr = conditionArr[0].strip();
-        String targetVal = conditionArr[1].strip();
+        return new ParsedFilter(
+                matcher.group(1).strip(),
+                operator,
+                matcher.group(3).strip());
+    }
+
+
+    private static ConcurrentMap<String, String> filterCollection(ConcurrentMap<String, String> collection, ParsedFilter filter){
+        String attr = filter.attribute();
+        Operator operator = filter.operator();
+        String targetVal = filter.targetValue();
 
         ConcurrentMap<String, String> filtered = new ConcurrentHashMap<>();
 
@@ -154,28 +208,12 @@ public class Database {
                     JsonObject json = reader.readObject();
                     if (json.containsKey(attr)){
                         JsonValue value = json.get(attr);
-                        String attrValue = value.getValueType() == JsonValue.ValueType.STRING ? json.getString(attr) : value.toString();
-                        switch (operator) {
-                            case "<":
-                            case ">":
-                            case "<=":
-                            case ">=":
-                                if (satisfies(attrValue, targetVal, operator)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
-                            case "!=":
-                                if (!attrValue.equalsIgnoreCase(targetVal)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
-                            case "=":
-                                if (attrValue.equalsIgnoreCase(targetVal)){
-                                    filtered.put(entry.getKey(), entry.getValue());
-                                }
-                                break;
-                            default:
-                                break;
+                        String attrValue = value.getValueType() == JsonValue.ValueType.STRING
+                                ? json.getString(attr)
+                                : value.toString();
+
+                        if (operator.test(compareValues(attrValue, targetVal))) {
+                            filtered.put(entry.getKey(), entry.getValue());
                         }
                     }
                 } catch (JsonException e) {
@@ -185,26 +223,13 @@ public class Database {
         return filtered;
     }
 
-    private static boolean satisfies(String value, String target, String op){
+    private static int compareValues(String value, String target) {
         try {
-            double a = Double.parseDouble(value);
-            double b = Double.parseDouble(target);
-            switch (op) {
-                case "<": return a < b;
-                case ">": return a > b;
-                case "<=": return a <= b;
-                case ">=": return a >= b;
-                default: return false;
-            }
+            double left = Double.parseDouble(value);
+            double right = Double.parseDouble(target);
+            return Double.compare(left, right);
         } catch (NumberFormatException e) {
-            int cmp = value.compareTo(target);
-            switch (op) {
-                case "<": return cmp < 0;
-                case ">": return cmp > 0;
-                case "<=": return cmp <= 0;
-                case ">=": return cmp >= 0;
-                default: return false;
-            }
+            return value.compareToIgnoreCase(target);
         }
     }
 

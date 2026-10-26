@@ -119,7 +119,7 @@ class DatabaseTest {
                 documents(db.readDocument("players filter username = bob")));
         assertEquals(List.of("{\"username\":\"elenina\",\"balance\":100}"),
                 documents(db.readDocument("players filter balance >= 100")));
-        assertEquals(2, documents(db.readDocument("players filter")).size());
+        assertEquals("ERROR INVALID_FILTER", db.readDocument("players filter"));
         assertEquals(2, documents(db.readDocument("players")).size());
     }
 
