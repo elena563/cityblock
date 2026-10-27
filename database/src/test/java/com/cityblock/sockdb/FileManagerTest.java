@@ -23,7 +23,7 @@ class FileManagerTest {
     @BeforeEach
     void setUp(@TempDir Path temp) {
         db = Database.getInstance();
-        db.getData().clear();
+        db.clearData();
 
         previousDir = System.getProperty(FileManager.DATA_DIR_PROPERTY);
         dataDir = temp.resolve("data");
@@ -37,7 +37,7 @@ class FileManagerTest {
         } else {
             System.setProperty(FileManager.DATA_DIR_PROPERTY, previousDir);
         }
-        db.getData().clear();
+        db.clearData();
     }
 
     private String insert(String collection, String json) {
@@ -89,7 +89,7 @@ class FileManagerTest {
         insert("matches", "{\"winner\": \"elenina\"}");
         insert("matches", "{\"winner\": \"bob\"}");
 
-        db.getData().clear();
+        db.clearData();
         FileManager.loadData();
 
         assertEquals(2, db.getData().get("matches").size());
@@ -109,7 +109,7 @@ class FileManagerTest {
 
         db.dropCollection("games");
         FileManager.updateCollection("games");
-        db.getData().clear();
+        db.clearData();
         FileManager.loadData();
 
         assertFalse(db.getData().containsKey("games"));

@@ -11,9 +11,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
+import java.util.Map;
+import java.util.HashMap;
 
 public class FileManager {
 
@@ -83,7 +82,6 @@ public class FileManager {
     }
 
     public static void loadData() {
-        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
 
         try {
             Path path = dataDir();
@@ -96,7 +94,7 @@ public class FileManager {
             }
 
             for (File collection : collections) {
-                ConcurrentMap<String, String> collectionData = new ConcurrentHashMap<>();
+                Map<String, String> collectionData = new HashMap<>();
                 File[] documents = collection.listFiles(file ->
                         file.isFile() && file.getName().endsWith(".json"));
 
@@ -107,7 +105,10 @@ public class FileManager {
                     }
                 }
 
-                data.put(collection.getName(), collectionData);
+                Database.getInstance().loadCollection(
+                    collection.getName(),
+                    collectionData
+                );
             }
         } catch (IOException e) {
             throw new RuntimeException("Error loading data", e);
@@ -115,7 +116,7 @@ public class FileManager {
     }
 
     public static void updateCollection(String collection) {
-        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
+        Map<String, Map<String, String>> data = Database.getInstance().getData();
 
         try {
             Path path = dataDir().resolve(collection);
@@ -141,7 +142,7 @@ public class FileManager {
     }
 
     public static void updateDocument(String collection, String document) {
-        ConcurrentMap<String, ConcurrentMap<String, String>> data = Database.getInstance().getData();
+        Map<String, Map<String, String>> data = Database.getInstance().getData();
         String filename = collection + "/" + document + ".json";
 
         try {

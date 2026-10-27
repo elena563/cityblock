@@ -2,6 +2,7 @@ package com.cityblock.sockdb;
 
 import java.io.StringReader;
 import java.util.Map;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +35,7 @@ import jakarta.json.JsonValue;
  * </ul>
  */
 public class Database {
-    private static Database INSTANCE;
+    private static final Database INSTANCE = new Database();
 
     private static final String NOT_FOUND = "ERROR NOT_FOUND";
     private static final String COL_NOT_FOUND = "ERROR COLLECTION_NOT_FOUND";
@@ -102,19 +103,37 @@ public class Database {
      * @return the shared {@code Database} instance
      */
     public static Database getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new Database();
-        }
         return INSTANCE;
     }
 
     /**
-     * Returns the raw backing store, mapping collection names to their documents.
+     * Returns a read-only view of the collections and their documents.
      *
-     * @return the mutable collection map
+     * @return the read-only collection map
      */
-    public ConcurrentMap<String, ConcurrentMap<String, String>> getData(){
-        return data;
+    public Map<String, Map<String, String>> getData(){
+        Map<String, Map<String, String>> view = new HashMap<>();
+
+        for (Map.Entry<String, ConcurrentMap<String, String>> entry : data.entrySet()) {
+            view.put(
+                    entry.getKey(),
+                    Collections.unmodifiableMap(entry.getValue())
+            );
+        }
+
+        return Collections.unmodifiableMap(view);
+    }
+
+    void loadCollection(String collectionName, Map<String, String> documents) {
+        data.put(collectionName, new ConcurrentHashMap<>(documents));
+    }
+
+    void clearData() {
+        data.clear();
+    }
+
+    void putRawDocument(String collectionName, String documentName, String content) {
+        data.get(collectionName).put(documentName, content);
     }
 
     /**
@@ -134,7 +153,7 @@ public class Database {
             return pathError;
         }
 
-        var collection = data.get(target.collection());
+        Map<String, String> collection = data.get(target.collection());
 
         if (collection == null) {
             return COL_NOT_FOUND;
@@ -240,12 +259,12 @@ public class Database {
     }
 
 
-    private static ConcurrentMap<String, String> filterCollection(ConcurrentMap<String, String> collection, ParsedFilter filter){
+    private static Map<String, String> filterCollection(Map<String, String> collection, ParsedFilter filter){
         String attr = filter.attribute();
         Operator operator = filter.operator();
         String targetVal = filter.targetValue();
 
-        ConcurrentMap<String, String> filtered = new ConcurrentHashMap<>();
+        Map<String, String> filtered = new HashMap<>();
 
         for (Map.Entry<String, String> entry : collection.entrySet()) {
                 try (JsonReader reader = READER_FACTORY.createReader(new StringReader(entry.getValue()))) {

@@ -20,7 +20,7 @@ class DatabaseTest {
     @BeforeEach
     void setUp() {
         db = Database.getInstance();
-        db.getData().clear();
+        db.clearData();
     }
 
     private String id(String response) {
@@ -146,7 +146,7 @@ class DatabaseTest {
     @Test
     void filterSkipsCorruptedDocuments() {
         db.createCollection("players");
-        db.getData().get("players").put("broken", "{\"balance\":");
+        db.putRawDocument("players", "broken", "{\"balance\":");
         db.insertDocument("players {\"balance\": 100}");
 
         assertEquals(List.of("{\"balance\":100}"), documents(db.readDocument("players balance>50")));
