@@ -1,27 +1,18 @@
-import { useState } from 'react'
 import './App.css'
+import { Routes, Route, Navigate } from 'react-router'
+import SetupArea from './pages/SetupArea.tsx'
+import Lobby from './pages/Lobby.tsx'
+import Game from './pages/Game.tsx'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-      <section id="center">
-        <div>
-          <h1>CityBlock</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-    </>
+    <Routes>
+      <Route path="/" element={<SetupArea />} />
+      <Route path="/lobby/:roomCode" element={<Lobby />} />
+      <Route path="/game/:roomCode" element={<Game />} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   )
 }
 
