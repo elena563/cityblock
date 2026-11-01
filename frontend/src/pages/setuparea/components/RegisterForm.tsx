@@ -2,7 +2,7 @@ import { Field, FieldLabel } from '../../../components/ui/field.tsx'
 import { Input } from '../../../components/ui/input.tsx'
 import { Button } from '@/components/ui/button.tsx'
 
-export default function RegisterForm() {
+export default function RegisterForm({ onRegistered }: { onRegistered: () => void }) {
      return (
       <div className="flex flex-col items-center justify-center bg-card p-6 rounded-lg shadow-lg">
         <h2 className="text-2xl text-foreground">Welcome to</h2>
@@ -14,7 +14,7 @@ export default function RegisterForm() {
             <FieldLabel htmlFor="name">Username</FieldLabel>
             <Input id="name" name="name" placeholder="Just a nickname.." />
           </Field>
-          <Button className="w-full md:w-auto">Register</Button>
+          <Button className="w-full md:w-auto" onClick={onRegistered}>Register</Button>
         </div>
       </div>
   )
