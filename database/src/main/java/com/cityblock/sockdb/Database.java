@@ -333,6 +333,9 @@ public class Database {
                 JsonObject jsonInput = inputReader.readObject();
                 for (var input : jsonInput.entrySet()) {
                     String attr = input.getKey();
+                    if (attr.equals("id") || attr.equals("createdAt")) {
+                        continue; // Skip immutable attributes
+                    }
                     var newVal = input.getValue();
                     builder.add(attr, newVal);
                 }
@@ -376,7 +379,8 @@ public class Database {
             JsonObject jsonDoc = docReader.readObject();
 
             var id = UUID.randomUUID().toString();
-            collection.put(id, jsonDoc.toString());
+            JsonObject stored = Json.createObjectBuilder(jsonDoc).add("id", id).build();
+            collection.put(id, stored.toString());
             return OK + " " + id;
         } catch (JsonException e) {
             return INVALID_JSON;

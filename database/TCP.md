@@ -84,7 +84,7 @@ OK
 insert collection {"key": "value", ...}
 ```
 
-Inserts a new document into the collection. The server generates a UUID v4 as the document ID and returns it. The payload must be a valid JSON object: an array, a number or a string are rejected with `ERROR INVALID_JSON`.
+Inserts a new document into the collection. The server generates a UUID v4 as the document ID, injects it as an `id` field inside the stored JSON, and returns it. The payload must be a valid JSON object: an array, a number or a string are rejected with `ERROR INVALID_JSON`.
 
 **Example:**
 ```
@@ -137,7 +137,7 @@ OK [{"username": "alice", "balance": 100}]
 write collection/id {"key": "new_value"}
 ```
 
-Performs a partial update (patch) on the specified document. Only the properties included in the payload are updated; all other properties are left unchanged. This is not a full replace. Nested objects and arrays are supported in the payload.
+Performs a partial update (patch) on the specified document. Only the properties included in the payload are updated; all other properties are left unchanged. This is not a full replace. Nested objects and arrays are supported in the payload. The `id` attribute is ignored.
 
 **Example:**
 ```

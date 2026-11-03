@@ -34,8 +34,26 @@ class DatabaseTest {
             List<String> entries = new ArrayList<>();
             reader.readArray().forEach(document -> entries.add(document.toString()));
             entries.sort(null);
-            return entries;
+            return stripId(entries);
         }
+    }
+
+    private static String withoutId(String response) {
+        assertTrue(response.startsWith("OK "), response);
+        try (JsonReader reader = Json.createReader(new StringReader(response.substring(3)))) {
+            return "OK " + Json.createObjectBuilder(reader.readObject()).remove("id").build();
+        }
+    }
+
+    private static List<String> stripId(List<String> docs) {
+        List<String> r = new ArrayList<>();
+        for (String d : docs) {
+            try (JsonReader reader = Json.createReader(new StringReader(d))) {
+                r.add(Json.createObjectBuilder(reader.readObject()).remove("id").build().toString());
+            }
+        }
+        r.sort(null);
+        return r;
     }
 
     @Test
@@ -70,7 +88,7 @@ class DatabaseTest {
         db.createCollection("players");
         String response = db.insertDocument("players {\"username\": \"elenina rossi\", \"balance\": 100}");
 
-        assertEquals("OK {\"username\":\"elenina rossi\",\"balance\":100}", db.readDocument("players/" + id(response)));
+        assertEquals("OK {\"username\":\"elenina rossi\",\"balance\":100}", withoutId(db.readDocument("players/" + id(response))));
     }
 
     @Test
@@ -157,7 +175,7 @@ class DatabaseTest {
         db.createCollection("players");
         String documentId = id(db.insertDocument("players {\"balance\": 10}"));
 
-        assertEquals("OK {\"balance\":10}", db.readDocument("players/" + documentId + " filter balance > 50"));
+        assertEquals("OK {\"balance\":10}", withoutId(db.readDocument("players/" + documentId + " filter balance > 50")));
     }
 
     @Test
@@ -166,7 +184,7 @@ class DatabaseTest {
         String documentId = id(db.insertDocument("players {\"username\": \"elenina\", \"balance\": 100}"));
 
         assertEquals("OK", db.writeDocument("players/" + documentId + " {\"balance\": 50}"));
-        assertEquals("OK {\"username\":\"elenina\",\"balance\":50}", db.readDocument("players/" + documentId));
+        assertEquals("OK {\"username\":\"elenina\",\"balance\":50}", withoutId(db.readDocument("players/" + documentId)));
     }
 
     @Test
@@ -175,8 +193,7 @@ class DatabaseTest {
         String documentId = id(db.insertDocument("players {\"username\": \"elenina\"}"));
 
         assertEquals("OK", db.writeDocument("players/" + documentId + " {\"tags\": [\"a\", \"b\"], \"active\": true}"));
-        assertEquals("OK {\"username\":\"elenina\",\"tags\":[\"a\",\"b\"],\"active\":true}",
-                db.readDocument("players/" + documentId));
+        assertEquals("OK {\"username\":\"elenina\",\"tags\":[\"a\",\"b\"],\"active\":true}", withoutId(db.readDocument("players/" + documentId)));
     }
 
     @Test
@@ -190,7 +207,7 @@ class DatabaseTest {
         assertEquals("ERROR INVALID_JSON", db.writeDocument("players/" + documentId + " {\"a\":"));
         assertEquals("ERROR NOT_FOUND", db.writeDocument("players/nope {\"a\": 1}"));
         assertEquals("ERROR COLLECTION_NOT_FOUND", db.writeDocument("games/" + documentId + " {\"a\": 1}"));
-        assertEquals("OK {\"balance\":100}", db.readDocument("players/" + documentId));
+        assertEquals("OK {\"balance\":100}", withoutId(db.readDocument("players/" + documentId)));
     }
 
     @Test

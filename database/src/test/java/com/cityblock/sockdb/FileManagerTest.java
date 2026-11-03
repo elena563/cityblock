@@ -59,7 +59,7 @@ class FileManagerTest {
         String document = insert("matches", "{\"winner\": \"elenina\"}");
 
         assertTrue(Files.exists(dataDir.resolve("matches").resolve(document + ".json")));
-        assertEquals("{\"winner\":\"elenina\"}",
+        assertEquals("{\"winner\":\"elenina\",\"id\":\"" + document + "\"}",
                 Files.readString(dataDir.resolve("matches").resolve(document + ".json")));
     }
 
@@ -104,7 +104,7 @@ class FileManagerTest {
                 "3c4d5e6f-7a8b-4c9d-8e0f-2a3b4c5d6e7f"), documents("players"));
         assertEquals(List.of("9e8d7c6b-5a4f-4392-8180-7f6e5d4c3b2a"), documents("games"));
         assertEquals(List.of("7f3c2d1a-84b5-4e29-a3f1-0c9d2e5b6f78"), documents("rooms"));
-        assertEquals("OK {\"username\":\"elenina\",\"balance\":100,\"playerStatus\":\"winner\"}",
+        assertEquals("OK {\"id\":\"1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\"username\":\"elenina\",\"balance\":100,\"playerStatus\":\"winner\"}",
                 db.readDocument("players/1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d"));
 
         db.dropCollection("games");
