@@ -12,12 +12,12 @@ public class DBRepository {
     }
 
     public String insert(String collection, String json) {
-        String command = "insert /" + collection + " " + json;
+        String command = "insert " + collection + " " + json;
         return dbClient.send(command);
     }
 
     public void update(String collection, String id, String patch) {
-        String command = "write /" + collection + "/" + id + " " + patch;
+        String command = "write " + collection + "/" + id + " " + patch;
         dbClient.send(command);
     }
 
@@ -27,14 +27,14 @@ public class DBRepository {
     }
 
     public String findAll(String collection) {
-        return dbClient.send("read /" + collection);
+        return dbClient.send("read " + collection);
     }
 
     public String findAll(String collection, String filter) {
-        return dbClient.send("read /" + collection + " filter " + filter);
+        return dbClient.send("read " + collection + " filter " + filter);
     }
 
     public String findById(String collection, String id) {
-        return dbClient.send("read /" + collection + "/" + id);
+        return dbClient.send("read " + collection + "/" + id);
     }
 }

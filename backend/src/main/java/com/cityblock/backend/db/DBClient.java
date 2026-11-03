@@ -14,7 +14,7 @@ public class DBClient {
     @Value("${db.host:127.0.0.1}")
     private String host;
 
-    @Value("${db.port:5555}")
+    @Value("${db.port:8080}")
     private int port;
 
     private Socket socket;
