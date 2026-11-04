@@ -1,0 +1,4 @@
+[
+  { "position": 12, "name": "Power Plant", "spaceType": "UTILITY", "groupName": "Utilities", "price": 150, "baseRent": 25 },
+  { "position": 28, "name": "Telecom Network",  "spaceType": "UTILITY", "groupName": "Utilities", "price": 150, "baseRent": 25 }
+]

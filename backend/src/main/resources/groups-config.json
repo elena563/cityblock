@@ -1,0 +1,12 @@
+[
+    { "name": "Industrial District", "color": "GREY", "size": 2},
+    { "name": "Eastside", "color": "RED", "size": 3},
+    { "name": "Market District", "color": "YELLOW", "size": 3},
+    { "name": "Arts District", "color": "ORANGE", "size": 3},
+    { "name": "Riverside", "color": "BLUE", "size": 3},
+    { "name": "Uptown", "color": "GREEN", "size": 3},
+    { "name": "Midtown", "color": "VIOLET", "size": 3},
+    { "name": "Downtown", "color": "GOLD", "size": 2},
+    { "name": "MetroStations", "color": null, "size": 4},
+    { "name": "Utilities", "color": null, "size": 2}
+]

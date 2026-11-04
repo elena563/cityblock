@@ -1,0 +1,6 @@
+[
+  { "position": 5,  "name": "MS1", "color": "YELLOW", "spaceType": "METRO_STATION", "groupName": "MetroStations", "price": 200, "baseRent": 25 },
+  { "position": 15, "name": "MS2", "color": "RED", "spaceType": "METRO_STATION", "groupName": "MetroStations", "price": 200, "baseRent": 25 },
+  { "position": 25, "name": "MS3", "color": "BLUE", "spaceType": "METRO_STATION", "groupName": "MetroStations", "price": 200, "baseRent": 25 },
+  { "position": 35, "name": "MS4", "color": "GREEN", "spaceType": "METRO_STATION", "groupName": "MetroStations", "price": 200, "baseRent": 25 }
+]

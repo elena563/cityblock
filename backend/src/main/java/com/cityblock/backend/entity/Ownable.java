@@ -14,5 +14,6 @@ import lombok.NoArgsConstructor;
 public abstract class Ownable extends Space {
     private String ownerPlayerId;
     private int baseRent;
+    private int price;
     private Group group;
 }

@@ -3,6 +3,7 @@ package com.cityblock.backend.entity.enums;
 public enum SpaceType {
     PROPERTY,
     METRO_STATION,
+    UTILITY,
     TAX,
     CHANCE,
     TROUBLE,

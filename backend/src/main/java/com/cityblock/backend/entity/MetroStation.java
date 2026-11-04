@@ -13,5 +13,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 
 public class MetroStation extends Ownable {
-    
+    private String color;
 }

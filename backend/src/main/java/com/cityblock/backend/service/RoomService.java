@@ -7,21 +7,25 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.io.IOException;
 import java.security.SecureRandom;
 
+import com.cityblock.backend.entity.Board;
 import com.cityblock.backend.entity.Room;
 
 @Service
 public class RoomService {
     private final DBRepository dbRepository;
+    private final BoardService boardService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
 
-    public RoomService(DBRepository dbRepository) {
+    public RoomService(DBRepository dbRepository, BoardService boardService) {
         this.dbRepository = dbRepository;
+        this.boardService = boardService;
     }
 
     public String createPlayer(String username) {
@@ -35,6 +39,9 @@ public class RoomService {
         room.put("code", generateRoomCode());
         room.put("creatorId", creatorId);
         room.putArray("players").addObject().put("id", creatorId);
+
+        ObjectNode board = objectMapper.createObjectNode();
+        room.set("board", board);
 
         String id = extractId(dbRepository.insert("rooms", room.toString()));
         room.put("id", id);
@@ -105,9 +112,21 @@ public class RoomService {
             throw new RuntimeException("Room not found");
         }
 
+        try {
+            JsonNode roomNode = objectMapper.readTree(room.substring(3));
+            Board board = objectMapper.convertValue(roomNode.get("board"), Board.class);
+            boardService.initializeBoard(board);
+
+            ObjectNode patch = objectMapper.createObjectNode();
+            patch.set("board", objectMapper.valueToTree(board));
+            dbRepository.update("rooms", roomId, patch.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Error processing room data", e);
+        }
+
         ObjectNode game = objectMapper.createObjectNode();
         game.put("roomId", roomId);
-        game.put("status", "ONGOING");
+        game.put("status", "PREPARING");
         return extractId(dbRepository.insert("games", game.toString()));
     }
 

@@ -1,0 +1,14 @@
+[
+  { "position": 0, "name": "GO", "spaceType": "GO" },
+  { "position": 2, "name": "Trouble", "spaceType": "TROUBLE" },
+  { "position": 4, "name": "Tax on Properties", "spaceType": "TAX", "taxAmount": 200 },
+  { "position": 7, "name": "Chance", "spaceType": "CHANCE" },
+  { "position": 10, "name": "Jail / Just Visiting", "spaceType": "JAIL_VISIT" },
+  { "position": 17, "name": "Trouble", "spaceType": "TROUBLE" },
+  { "position": 20, "name": "City Park", "spaceType": "CITY_PARK" },
+  { "position": 22, "name": "Chance", "spaceType": "CHANCE" },
+  { "position": 30, "name": "Under Arrest", "spaceType": "GO_TO_JAIL" },
+  { "position": 33, "name": "Trouble", "spaceType": "TROUBLE" },
+  { "position": 36, "name": "Chance", "spaceType": "CHANCE" },
+  { "position": 38, "name": "Municipal Tax", "spaceType": "TAX", "taxAmount": 100 }
+]
