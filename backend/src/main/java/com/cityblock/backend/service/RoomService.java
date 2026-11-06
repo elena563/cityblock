@@ -64,13 +64,13 @@ public class RoomService {
     }
 
     private boolean isCodeAvailable(String code) {
-        String response = dbRepository.findAll("rooms", "code = " + code);
+        String response = dbRepository.findByField("rooms", "code", code);
         return response != null && response.startsWith("OK ") && response.substring(3).equals("[]");
     }
 
     public void joinRoom(String roomCode, String playerId) {
         // Find the room by code
-        String response = dbRepository.findAll("rooms", "code = " + roomCode);
+        String response = dbRepository.findByField("rooms", "code", roomCode);
         if (response == null || !response.startsWith("OK ")) {
             throw new RuntimeException("DB error: " + response);
         }

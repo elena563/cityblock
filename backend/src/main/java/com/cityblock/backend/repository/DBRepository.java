@@ -34,6 +34,10 @@ public class DBRepository {
         return dbClient.send("read " + collection + " filter " + filter);
     }
 
+    public String findByField(String collection, String field, String value) {
+        return findAll(collection, field + " = " + value);
+    }
+
     public String findById(String collection, String id) {
         return dbClient.send("read " + collection + "/" + id);
     }
