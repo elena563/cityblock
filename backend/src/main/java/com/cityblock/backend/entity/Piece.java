@@ -13,4 +13,5 @@ public class Piece {
     private String id;
     private Color color;
     private String spaceId;
+    private String playerId;
 }

@@ -1,0 +1,4 @@
+[
+    {"name": "Unexpected Repairs", "description": "You need to pay for unexpected repairs. Pay $150.", "effect":"TRANSFER_MONEY", "amount": -150}, 
+    {"name": "Traffic Jam", "description": "A massive traffic jam slows you down. Move back 3 spaces.", "effect":"MOVE_PIECE", "amount": -3}
+]

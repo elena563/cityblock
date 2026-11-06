@@ -15,5 +15,4 @@ public class Player {
     private String token;
     private int balance;
     private PlayerStatus status;
-    private String pieceId;
 }

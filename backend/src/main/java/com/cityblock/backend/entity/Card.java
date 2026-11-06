@@ -14,4 +14,5 @@ public class Card {
     private String name;
     private String description;
     private CardEffect effect;
+    private int amount;
 }

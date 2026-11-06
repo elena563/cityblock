@@ -1,0 +1,4 @@
+[
+    {"name": "Business Deal", "description": "You closed a profitable deal downtown. Collect $150.", "effect":"TRANSFER_MONEY", "amount": 150}, 
+    {"name": "Express Lane", "description": "You found a shortcut through the city. Move forward 3 spaces.", "effect":"MOVE_PIECE", "amount": 3}
+]

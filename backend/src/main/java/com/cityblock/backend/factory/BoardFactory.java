@@ -3,23 +3,34 @@ package com.cityblock.backend.factory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.cityblock.backend.entity.Board;
 import com.cityblock.backend.entity.Space;
+import com.cityblock.backend.entity.Card;
+import com.cityblock.backend.entity.Deck;
 import com.cityblock.backend.entity.Utility;
 import com.cityblock.backend.entity.Property;
 import com.cityblock.backend.entity.Group;
 import com.cityblock.backend.entity.MetroStation;
 import com.cityblock.backend.entity.TaxSpace;
+import com.cityblock.backend.entity.enums.CardEffect;
+import com.cityblock.backend.entity.enums.EventType;
 import com.cityblock.backend.entity.enums.SpaceType;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Comparator;
-import com.fasterxml.jackson.databind.JsonNode;
-import org.springframework.stereotype.Component;
+import static com.cityblock.backend.entity.enums.EventType.CHANCE;
+import static com.cityblock.backend.entity.enums.EventType.TROUBLE;
+
 
 @Component
 public class BoardFactory {
@@ -36,7 +47,6 @@ public class BoardFactory {
         // spaces
         List<Space> spaces = new ArrayList<>();
         
-        // board-config
         spaces.addAll(loadSpaces("/board-config.json", groupsByName));
         spaces.addAll(loadSpaces("/properties-config.json", groupsByName));
         spaces.addAll(loadSpaces("/stations-config.json", groupsByName));
@@ -44,6 +54,11 @@ public class BoardFactory {
 
         spaces.sort(Comparator.comparingInt(Space::getPosition));
         board.setSpaces(spaces);
+
+        // cards
+        Deck chanceDeck = loadDeck(CHANCE);
+        Deck troubleDeck = loadDeck(TROUBLE);
+        board.setDecks(List.of(chanceDeck, troubleDeck));
         
         board.setPieces(new ArrayList<>());
     }
@@ -112,5 +127,32 @@ public class BoardFactory {
             spaces.add(space);
         }
         return spaces;
+    }
+
+    private Deck loadDeck(EventType type) throws IOException {
+        String path = switch (type) {
+            case CHANCE -> "/chances-config.json";
+            case TROUBLE -> "/troubles-config.json";
+        };
+        
+        InputStream is = getClass().getResourceAsStream(path);
+        JsonNode nodes = objectMapper.readTree(is);
+        
+        List<Card> cards = new ArrayList<>();
+        for (JsonNode node : nodes) {
+            Card card = new Card();
+            card.setName(node.get("name").asText());
+            card.setDescription(node.get("description").asText());
+            card.setEffect(CardEffect.valueOf(node.get("effect").asText()));
+            card.setAmount(node.has("amount") ? node.get("amount").asInt() : 0);
+            cards.add(card);
+        }
+        
+        Collections.shuffle(cards);
+        
+        Deck deck = new Deck();
+        deck.setType(type);
+        deck.setCards(new LinkedList<>(cards));
+        return deck;
     }
 }

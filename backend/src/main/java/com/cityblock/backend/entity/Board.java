@@ -13,4 +13,5 @@ public class Board {
     private String id;
     private List<Piece> pieces;
     private List<Space> spaces;
+    private List<Deck> decks;
 }

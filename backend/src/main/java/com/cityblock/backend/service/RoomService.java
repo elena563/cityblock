@@ -9,8 +9,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.List;
 
 import com.cityblock.backend.entity.Board;
+import com.cityblock.backend.entity.Player;
 import com.cityblock.backend.entity.Room;
 
 @Service
@@ -114,8 +116,11 @@ public class RoomService {
 
         try {
             JsonNode roomNode = objectMapper.readTree(room.substring(3));
+            Room roomData = objectMapper.treeToValue(roomNode, Room.class);
             Board board = objectMapper.convertValue(roomNode.get("board"), Board.class);
-            boardService.initializeBoard(board);
+            List<Player> players = roomData.getPlayers();
+
+            boardService.initializeBoard(board, players);
 
             ObjectNode patch = objectMapper.createObjectNode();
             patch.set("board", objectMapper.valueToTree(board));
