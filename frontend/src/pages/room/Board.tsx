@@ -2,16 +2,16 @@ import Space from "./Space";
 
 // temporary data for spaces on the board prototype
 const spaces = [
-    { name: null, type: "GO", color: "red", behavior: "Collect $200", position: 0, isCorner: true },
+    { name: ' ', type: "go", color: "red", behavior: "Collect $200", position: 0, isCorner: true },
     { name: "Main Street", type: "property", color: "blue", behavior: null, position: 1, isCorner: false },
-    { name: "City Hall", type: "CITY_HALL", color: "blue", behavior: null, position: 2, isCorner: false },
+    { name: "City Hall", type: "CITY_HALL", color: "blue", behavior: " ", position: 2, isCorner: false },
     { name: "Broadway", type: "property", color: "blue", behavior: null, position: 3, isCorner: false },
-    { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 4, isCorner: false },
-    { name: "5th Avenue", type: "property", color: "green", behavior: null, position: 5, isCorner: false },
-    { name: "Central Park", type: "CITY_PARK", color: "green", behavior: null, position: 6, isCorner: false },
+    { name: "5th Avenue", type: "tax", color: "green", behavior: "pay $100", position: 4, isCorner: false },
+    { name: "Trouble", type: "trouble", color: null, behavior: " ", position: 5, isCorner: false },
+    { name: "Central Park", type: "CITY_PARK", color: "green", behavior: "pay $100", position: 6, isCorner: false },
     { name: "Madison Avenue", type: "property", color: "green", behavior: null, position: 7, isCorner: false },
     { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 8, isCorner: false },
-    { name: "Wall Street", type: "property", color: "yellow", behavior: null, position: 9, isCorner: false },
+    { name: "Wall Street", type: "property", color: "yellow", behavior: "$100", position: 9, isCorner: false },
     { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 10, isCorner: true },
     { name: "5th Avenue", type: "property", color: "green", behavior: null, position: 11, isCorner: false },
     { name: "Central Park", type: "CITY_PARK", color: "green", behavior: null, position: 12, isCorner: false },
@@ -30,7 +30,7 @@ const spaces = [
     { name: "5th Avenue", type: "property", color: "green", behavior: null, position: 25, isCorner: false },
     { name: "Central Park", type: "CITY_PARK", color: "green", behavior: null, position: 26, isCorner: false },
     { name: "Madison Avenue", type: "property", color: "green", behavior: null, position: 27, isCorner: false },
-    { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 28, isCorner: false },
+    { name: null, type: "tax", color: "red", behavior: "Collect $200", position: 28, isCorner: false },
     { name: "Wall Street", type: "property", color: "yellow", behavior: null, position: 29, isCorner: false },
     { name: null, type: "GO", color: "red", behavior: "Collect $200", position: 30, isCorner: true },
     { name: "Main Street", type: "property", color: "blue", behavior: null, position: 31, isCorner: false },
@@ -54,7 +54,7 @@ export default function Board() {
     }
 
   return (
-    <div className="grid max-h-screen border-r-2 border-b-2 border-black" style={{ gridTemplateColumns: '4rem repeat(9, 3rem) 4rem', gridTemplateRows: '4rem repeat(9, 3rem) 4rem' }}>
+    <div className="grid border-r-2 border-black m-2" style={{ gridTemplateColumns: '5rem repeat(9, 3rem) 5rem', gridTemplateRows: '5rem repeat(9, 3rem) 5rem' }}>
         {spaces.map((space, i) => {
             const { row, col } = getGridPosition(i);
             return (
