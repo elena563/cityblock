@@ -168,3 +168,30 @@ h2 {
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}}
+
+.board-area {
+  container-type: size;
+}
+
+.board-frame {
+  --board-gap: 0.5rem;
+  --board-size: min(
+    37rem,
+    calc(100cqw - 2 * var(--board-gap)),
+    calc(100cqh - 2 * var(--board-gap))
+  );
+  width: var(--board-size);
+  height: var(--board-size);
+  container-type: size;
+}
+
+.board-area {
+  container-type: size;
+}
+
+.board-frame {
+  --board-size: min(37rem, 100cqw, 100cqh);
+  width: var(--board-size);
+  height: var(--board-size);
+  container-type: size;
+}

@@ -16,7 +16,7 @@ const spaces = [
     { name: "5th Avenue", type: "property", color: "green", behavior: null, position: 11, isCorner: false },
     { name: "Central Park", type: "city_park", color: "green", behavior: null, position: 12, isCorner: false },
     { name: "Madison Avenue", type: "property", color: "green", behavior: null, position: 13, isCorner: false },
-    { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 14, isCorner: false },
+    { name: null, type: "property", color: "red", behavior: "Collect $200", position: 14, isCorner: false },
     { name: "Metro Station 1", type: "metro_station", color: null, behavior: "$100", position: 15, isCorner: false },
     { name: null, type: "transit", color: "red", behavior: "Collect $200", position: 16, isCorner: false },
     { name: "Main Street", type: "property", color: "blue", behavior: null, position: 17, isCorner: false },
@@ -54,7 +54,8 @@ export default function Board() {
     }
 
   return (
-    <div className="grid border-r-2 border-black m-2" style={{ gridTemplateColumns: '5rem repeat(9, 3rem) 5rem', gridTemplateRows: '5rem repeat(9, 3rem) 5rem' }}>
+    <div className="board-frame">
+      <div className="grid w-full h-full border-r-2 border-black" style={{ gridTemplateColumns: '5fr repeat(9, 3fr) 5fr', gridTemplateRows: '5fr repeat(9, 3fr) 5fr' }}>
         {spaces.map((space, i) => {
             const { row, col } = getGridPosition(i);
             return (
@@ -65,9 +66,10 @@ export default function Board() {
             />
             );
         })}
-        <div className="border-t-2 border-l-2 border-black flex items-start justify-center p-4" style={{ gridRow: '2 / 11', gridColumn: '2 / 11', backgroundImage: 'url(/images/cityblock-map.webp)', backgroundSize: 'contain', backgroundRepeat: 'no-repeat' }}>
-              <img src="/images/logo-mixed.webp" alt="CityBlock Logo" className="mb-4 mr-4 relative w-28 pointer-events-none" />
-</div>
+        <div className="border-t-2 border-l-2 border-black flex items-start justify-center p-[2.7027cqw]" style={{ gridRow: '2 / 11', gridColumn: '2 / 11', backgroundImage: 'url(/images/cityblock-map.webp)', backgroundSize: 'contain', backgroundRepeat: 'no-repeat' }}>
+              <img src="/images/logo-mixed.webp" alt="CityBlock Logo" className="mb-[2.7027cqw] mr-[2.7027cqw] relative w-[18.9189cqw] pointer-events-none" />
+        </div>
+      </div>
     </div>
   )
 }

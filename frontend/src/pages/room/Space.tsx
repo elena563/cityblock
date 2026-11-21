@@ -37,17 +37,10 @@ export default function Space({ space, style }: { space: Space; style?: React.CS
     }
 
     const position = space.position;
-    const isVertical = (position > 10 && position < 20) || position > 30;
-
-    const sizeClass = space.isCorner
-        ? 'w-20 h-20'
-        : isVertical
-            ? 'w-20 h-12'
-            : 'w-12 h-20';
 
     const innerSize = space.isCorner
         ? 'w-[65%] h-full'
-        : 'w-12 h-20';
+        : 'w-[8.1081cqw] h-[13.5135cqw]';
 
     const rotation = space.isCorner ? getCornerRotationAngle(position) : getRotationAngle(position);
 
@@ -71,7 +64,7 @@ export default function Space({ space, style }: { space: Space; style?: React.CS
 
 return (
     <div
-        className={`${sizeClass} bg-card relative ${borderClass} border-solid border-black flex flex-col items-center justify-center overflow-hidden`}
+        className={`bg-card relative ${borderClass} border-solid border-black flex flex-col items-center justify-center overflow-hidden`}
         style={style}
     >
         <div
