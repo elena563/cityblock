@@ -57,9 +57,17 @@ export default function Space({ space, style }: { space: Space; style?: React.CS
         position <= 30 ? 'border-t-2 border-l-2' :
         'border-t-2 border-l-2'; 
 
-    const imageName = space.type === 'metroStation' || space.type === 'tax' || space.type === 'utility' ? space.type.toLowerCase() + space.position : space.type.toLowerCase();
-    const imageHeight = space.type === 'trouble' || space.type === 'chance' ? 'h-10' : 'h-8';
-    const imageWidth = space.type === 'go' || space.type === 'chance' ? 'w-12' : 'w-8';
+    const imageName = space.type === 'metro_station' || space.type === 'tax' || space.type === 'utility' ? space.type.toLowerCase() + space.position : space.type.toLowerCase();
+    const imageHeight =
+        space.type === 'trouble' || space.type === 'chance' || space.type === 'city_park'
+            ? 'h-10'
+            : space.type === 'metro_station'
+                ? 'h-4'
+                : 'h-8';
+    const imageWidth = space.isCorner ? 'w-12'
+        : space.type === 'metro_station'
+            ? 'w-10'
+            : 'w-8';
 
 return (
     <div
