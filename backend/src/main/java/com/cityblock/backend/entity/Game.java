@@ -13,4 +13,6 @@ public class Game {
     private String id;
     private String roomId;
     private GameStatus status;
+    private int[] turnOrder;
+    private int currentTurnIndex;
 }

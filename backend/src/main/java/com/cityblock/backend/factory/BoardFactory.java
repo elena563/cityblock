@@ -34,6 +34,9 @@ import static com.cityblock.backend.entity.enums.EventType.TROUBLE;
 
 @Component
 public class BoardFactory {
+    private static final String GROUP_NAME_FIELD = "groupName";
+    private static final String BASE_RENT_FIELD = "baseRent";
+    private static final String PRICE_FIELD = "price";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public void initBoard(Board board) throws IOException {
@@ -82,9 +85,9 @@ public class BoardFactory {
                     prop.setPosition(position);
                     prop.setName(name);
                     prop.setType(SpaceType.PROPERTY);
-                    prop.setGroup(groupsByName.get(node.get("groupName").asText()));
-                    prop.setBaseRent(node.get("baseRent").asInt());
-                    prop.setPrice(node.get("price").asInt());
+                    prop.setGroup(groupsByName.get(node.get(GROUP_NAME_FIELD).asText()));
+                    prop.setBaseRent(node.get(BASE_RENT_FIELD).asInt());
+                    prop.setPrice(node.get(PRICE_FIELD).asInt());
                     yield prop;
                 }
                 case METRO_STATION -> {
@@ -93,9 +96,9 @@ public class BoardFactory {
                     ms.setName(name);
                     ms.setType(SpaceType.METRO_STATION);
                     ms.setColor(node.get("color").asText());
-                    ms.setGroup(groupsByName.get(node.get("groupName").asText()));
-                    ms.setBaseRent(node.get("baseRent").asInt());
-                    ms.setPrice(node.get("price").asInt());
+                    ms.setGroup(groupsByName.get(node.get(GROUP_NAME_FIELD).asText()));
+                    ms.setBaseRent(node.get(BASE_RENT_FIELD).asInt());
+                    ms.setPrice(node.get(PRICE_FIELD).asInt());
                     yield ms;
                 }
                 case UTILITY -> {
@@ -103,9 +106,9 @@ public class BoardFactory {
                     utility.setPosition(position);
                     utility.setName(name);
                     utility.setType(SpaceType.UTILITY);
-                    utility.setGroup(groupsByName.get(node.get("groupName").asText()));
-                    utility.setBaseRent(node.get("baseRent").asInt());
-                    utility.setPrice(node.get("price").asInt());
+                    utility.setGroup(groupsByName.get(node.get(GROUP_NAME_FIELD).asText()));
+                    utility.setBaseRent(node.get(BASE_RENT_FIELD).asInt());
+                    utility.setPrice(node.get(PRICE_FIELD).asInt());
                     yield utility;
                 }
                 case TAX -> {

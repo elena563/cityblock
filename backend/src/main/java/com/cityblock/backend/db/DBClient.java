@@ -34,7 +34,9 @@ public class DBClient {
             if (socket != null && !socket.isClosed()) {
                 socket.close();
             }
-        } catch (IOException ignored) {}
+        } catch (IOException _) {
+            // Ignore close failures during application shutdown.
+        }
     }
 
     public synchronized String send(String command) {

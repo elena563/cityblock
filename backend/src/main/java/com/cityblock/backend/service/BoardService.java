@@ -3,6 +3,7 @@ package com.cityblock.backend.service;
 import java.io.IOException;
 
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import com.cityblock.backend.repository.DBRepository;
 
 @Service
 public class BoardService {
+    private static final Random RANDOM = new Random();
     private final BoardFactory boardFactory;
     private final DBRepository dbRepository;
     private final ObjectMapper objectMapper;
@@ -47,7 +49,7 @@ public class BoardService {
     }
 
     public int generateDiceRoll() {
-        return (int) (Math.random() * 6) + 1;
+        return RANDOM.nextInt(6) + 1;
     }
 
     private Board getBoardByRoomId(String roomId) {
@@ -74,15 +76,12 @@ public class BoardService {
         JsonNode boardJson = objectMapper.valueToTree(board);
         dbRepository.update("rooms", roomId, boardJson.toString());
 
-        boolean passGo = this.checkPassGo(playerId, newPosition, currentPosition);
+        boolean passGo = this.checkPassGo(newPosition, currentPosition);
 
         return new MoveResult(newPosition, passGo);
     }
 
-    private boolean checkPassGo(String playerId, int newPosition, int currentPosition) {
-        if (currentPosition < newPosition) {
-            return false;
-        }
-        return true;
-    }//TODO: class turn + start of game
+    private boolean checkPassGo(int newPosition, int currentPosition) {
+        return currentPosition >= newPosition;
+    }
 }
