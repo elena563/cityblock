@@ -13,6 +13,8 @@ public class Game {
     private String id;
     private String roomId;
     private GameStatus status;
-    private int[] turnOrder;
+    private String[] turnOrder;
     private int currentTurnIndex;
+    private String currentTurnId;
+    private String winnerId;
 }

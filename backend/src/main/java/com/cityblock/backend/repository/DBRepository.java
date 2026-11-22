@@ -11,9 +11,14 @@ public class DBRepository {
     private static final String WRITE_COMMAND = "write";
     private static final String DELETE_COMMAND = "delete";
     private static final String INSERT_COMMAND = "insert";
+    private static final String CREATE_COMMAND = "create";
 
     public DBRepository(DBClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public String createCollection(String collection) {
+        return dbClient.send(CREATE_COMMAND + " " + collection);
     }
 
     public String insert(String collection, String json) {

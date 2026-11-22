@@ -12,10 +12,13 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 import com.cityblock.backend.entity.Board;
 import com.cityblock.backend.entity.Player;
 import com.cityblock.backend.entity.Room;
+import com.cityblock.backend.entity.Turn;
+import com.cityblock.backend.entity.enums.TurnPhase;
 
 @Service
 public class RoomService {
@@ -29,16 +32,26 @@ public class RoomService {
     private static final String PLAYERS_COLLECTION = "players";
     private static final String ROOMS_COLLECTION = "rooms";
     private static final String BOARD_PROPERTY = "board";
+    private static final String GAME_PROPERTY = "game";
+    private static final String TURNS_COLLECTION = "turns";
+
+    public record PlayerCredentials(String id, String token) {}
 
     public RoomService(DBRepository dbRepository, BoardService boardService) {
         this.dbRepository = dbRepository;
         this.boardService = boardService;
     }
 
-    public String createPlayer(String username) {
+    public PlayerCredentials createPlayer(String username) {
         ObjectNode player = objectMapper.createObjectNode();
         player.put("username", username);
-        return extractId(dbRepository.insert(PLAYERS_COLLECTION, player.toString()));
+
+        String token = UUID.randomUUID().toString();
+        player.put("token", token);
+        player.put("balance", 1500);
+        player.put("status", "ACTIVE");
+        String id = extractId(dbRepository.insert(PLAYERS_COLLECTION, player.toString()));
+        return new PlayerCredentials(id, token);
     }
 
     public Room createRoom(String creatorId) {
@@ -119,26 +132,28 @@ public class RoomService {
             throw new IllegalStateException("Room not found");
         }
 
-        List<Player> players = new ArrayList<>();
+        List<Player> players;
+        Board board;
 
         try {
             JsonNode roomNode = objectMapper.readTree(room.substring(3));
+            if (roomNode.hasNonNull(GAME_PROPERTY)) {
+                throw new IllegalStateException("Game already started");
+            }
             Room roomData = objectMapper.treeToValue(roomNode, Room.class);
-            Board board = objectMapper.convertValue(roomNode.get(BOARD_PROPERTY), Board.class);
+            JsonNode boardNode = roomNode.get(BOARD_PROPERTY);
+            if (boardNode == null || boardNode.isNull()) {
+                throw new IllegalStateException("Room has no board");
+            }
+            board = objectMapper.convertValue(boardNode, Board.class);
             players = roomData.getPlayers();
-
+            if (players == null || players.isEmpty()) {
+                throw new IllegalStateException("Room has no players");
+            }
             boardService.initializeBoard(board, players);
-
-            ObjectNode patch = objectMapper.createObjectNode();
-            patch.set(BOARD_PROPERTY, objectMapper.valueToTree(board));
-            dbRepository.update(ROOMS_COLLECTION, roomId, patch.toString());
         } catch (IOException e) {
             throw new RuntimeException("Error processing room data", e);
         }
-
-        ObjectNode game = objectMapper.createObjectNode();
-        game.put("roomId", roomId);
-        game.put("status", "PREPARING");
 
         List<String> playerIds = new ArrayList<>();
         for (Player player : players) {
@@ -146,12 +161,38 @@ public class RoomService {
         }
         Collections.shuffle(playerIds);
 
+        ensureTurnsCollection();
+
+        ObjectNode game = objectMapper.createObjectNode();
+        game.put("id", roomId);
+        game.put("roomId", roomId);
+        game.put("status", "ONGOING");
+
         ArrayNode turnOrder = game.putArray("turnOrder");
         for (String playerId : playerIds) {
             turnOrder.add(playerId);
         }
         game.put("currentTurnIndex", 0);
-        return extractId(dbRepository.insert("games", game.toString()));
+
+        Turn turn = new Turn();
+        turn.setGameId(roomId);
+        turn.setPlayerId(playerIds.get(0));
+        turn.setNumber(1);
+        turn.setPhase(TurnPhase.ROLL_DICE);
+        String turnId = extractId(dbRepository.insert(TURNS_COLLECTION, objectMapper.valueToTree(turn).toString()));
+        turn.setId(turnId);
+        game.put("currentTurnId", turnId);
+
+        ObjectNode patch = objectMapper.createObjectNode();
+        patch.set(BOARD_PROPERTY, objectMapper.valueToTree(board));
+        patch.set(GAME_PROPERTY, game);
+        dbRepository.update(ROOMS_COLLECTION, roomId, patch.toString());
+
+        return roomId;
+    }
+
+    private void ensureTurnsCollection() {
+        dbRepository.createCollection(TURNS_COLLECTION);
     }
 
     private String extractId(String response) {
